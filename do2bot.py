@@ -29,8 +29,12 @@ def start(update, context):
       message.reply_text("The list you are searching for is not existing.")
     elif not dbFuncs.isCoworker(args[0], message.from_user['id']):
       if dbFuncs.isOwner(args[0], message.from_user['id']):
+        msgno = dbFuncs.getSpecificMessage(args[0], message.from_user['id'])[0]
         try:
-          bot.edit_message_text(chat_id = message.chat_id, message_id = dbFuncs.getSpecificMessage(args[0], message.from_user['id'])[0], text = "↓")
+          if helpFuncs.isInt(msgno):
+            bot.edit_message_text(chat_id = message.chat_id, message_id = msgno, text = "↓")
+          else:
+            bot.edit_message_text(inline_message_id = msgno, text = "↓")
         except:
           print("Malicious message number")
         user_data['list'], user_data['current'] = args[0], message.reply_text(listText(args[0]), parse_mode = 'Markdown', disable_web_page_preview = True, reply_markup = createKeyboard(args[0], update.message.from_user['id'])).message_id
@@ -48,7 +52,7 @@ def start(update, context):
   return ConversationHandler.END
 
 def help(update, context):
-  update.message.reply_text("Here are some tips to use this bot:\nTo create a new list, use /new. Then enter a title for this list. When you're done, you can send a list of things here and this bot will insert it to the list.\nThe lower right button on the owner's list indicates whether the list is open or not. Only the owner can switch if the list is open. When open, other people who enters the unique code of your list will be added as operator for your list. This will grant them the possibility to add items to the list and recall the list with the inline function.\n\nThis bot is usable via inline mode. To see a list of your current lists, just type the bots name in the chat like '`@do2bot `'.")
+  update.message.reply_text("Here are some tips to use this bot:\nTo create a new list, use /new. Then enter a title for this list. When you're done, you can send a list of things here and this bot will insert it to the list.\nThe lower right button on the owner's list indicates whether the list is open or not. Only the owner can switch if the list is open. When open, other people who enters the unique code of your list will be added as operator for your list. This will grant them the possibility to add items to the list and recall the list with the inline function.\n\nThis bot is usable via inline mode. To see a list of your current lists, just type the bots name in the chat like '`@do2bot `'.", reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text = "Try it now", switch_inline_query_current_chat = "")]]))
 
 def new(update, context):
   update.message.reply_text("Please insert a name for the new list.")
@@ -106,11 +110,16 @@ def rcvMessage(update, context):
       message.reply_text("No list specified. Please choose one or create a list first.")
       return
     items = message.text.split("\n")
-    dbFuncs.insertItems(user_data['list'], items)
-  updateMessages(context.bot, user_data['list'])
+    dbFuncs.insertItems(user_data['list'], items, message.from_user['id'], message.message_id)
+  updateMessages(bot, user_data['list'])
   temp = user_data['list']
   user_data.clear()
   user_data['list'] = temp
+
+def editMessage(update, context):
+  message, bot = update.edited_message, context.bot
+  code = dbFuncs.editItems(message.text.split("\n"), message.from_user['id'], message.message_id)
+  updateMessages(bot, code)
 
 def updateMessages(bot, code):
   list = dbFuncs.getList(code)
@@ -295,11 +304,13 @@ def main(updater):
   )
 
   dispatcher.add_handler(newList)
+  dispatcher.add_handler(CommandHandler('help', help, Filters.private))
   dispatcher.add_handler(InlineQueryHandler(inlineQuery))
   dispatcher.add_handler(ChosenInlineResultHandler(chosenQuery))
   dispatcher.add_handler(CallbackQueryHandler(pushInline))
   dispatcher.add_handler(RegexHandler('^\/.*', blankCode))
   dispatcher.add_handler(MessageHandler(Filters.text&Filters.private&(~Filters.update.edited_message), rcvMessage))
+  dispatcher.add_handler(MessageHandler(Filters.text&Filters.private&Filters.update.edited_message, editMessage))
   dispatcher.add_error_handler(error_callback)
 
 

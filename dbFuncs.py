@@ -1,4 +1,5 @@
 from ..bottoken import getConn
+
 dblogin = 'do2bot'
 
 def initDB():
@@ -6,26 +7,27 @@ def initDB():
     cur = conn.cursor()
     conn.rollback()
     cur.execute("CREATE TABLE IF NOT EXISTS Lists(Code TEXT PRIMARY KEY NOT NULL, Title TEXT NOT NULL, Owner BIGINT NOT NULL, Name TEXT NOT NULL, Message TEXT NOT NULL DEFAULT '0', Open BOOLEAN NOT NULL DEFAULT FALSE);")
-    cur.execute("CREATE TABLE IF NOT EXISTS Items(ID BIGSERIAL PRIMARY KEY NOT NULL, List TEXT REFERENCES Lists(Code), Item TEXT NOT NULL, Done BOOLEAN NOT NULL DEFAULT FALSE);")
+    cur.execute("CREATE TABLE IF NOT EXISTS Items(ID BIGSERIAL PRIMARY KEY NOT NULL, List TEXT REFERENCES Lists(Code), Item TEXT NOT NULL, Done BOOLEAN NOT NULL DEFAULT FALSE, FromUser BIGINT NOT NULL DEFAULT -1, MessageID BIGINT NOT NULL DEFAULT -1, Line SMALLINT NOT NULL DEFAULT 0);")
     cur.execute("CREATE TABLE IF NOT EXISTS Coworkers(List TEXT NOT NULL REFERENCES Lists(Code), Worker BIGINT NOT NULL, Name TEXT NOT NULL, Message TEXT NOT NULL DEFAULT '0');")
     cur.execute("CREATE TABLE IF NOT EXISTS InlineMessages(List TEXT NOT NULL REFERENCES Lists(Code), InlineID TEXT NOT NULL);")
     conn.commit()
-
+#TODO Edit every Items-manipulation to fit the new requirements
 def insertList(code, title, owner, name):
   with getConn(dblogin) as conn:
     cur = conn.cursor()
     cur.execute("INSERT INTO Lists(Code, Title, Owner, Name) VALUES(%s, %s, %s, %s);", (code, title, owner, name))
     conn.commit()
 
-def insertItem(code, item):
+def insertItem(code, item, fromuser = -1, message = -1, line = 0):
   with getConn(dblogin) as conn:
     cur = conn.cursor()
-    cur.execute("INSERT INTO Items(List, Item) VALUES(%s, %s);", (code, item))
+    cur.execute("INSERT INTO Items(List, Item, FromUser, MessageID, Line) VALUES(%s, %s, %s, %s, %s);", (code, item, fromuser, message, line))
     conn.commit()
 
-def insertItems(code, items):
+def insertItems(code, items, fromuser = -1, message = -1, line = 0):
   for item in items:
-    insertItem(code, item)
+    insertItem(code, item, fromuser, message, line)
+    line += 1
 
 def insertCoworker(code, user, name, message):
   with getConn(dblogin) as conn:
@@ -43,6 +45,53 @@ def updateOwner(code, message):
   with getConn(dblogin) as conn:
     cur = conn.cursor()
     cur.execute("UPDATE Lists SET Message = %s WHERE Code = %s;", (str(message), code))
+    conn.commit()
+
+def editItem(item, fromuser, msgID, line = 0):
+  if not getItemByEdit(fromuser, msgID, line):
+    return False
+  with getConn(dblogin) as conn:
+    cur = conn.cursor()
+    cur.execute("UPDATE Items SET Item = %s WHERE FromUser = %s AND MessageID = %s AND Line = %s;", (item, fromuser, msgID, line))
+    conn.commit()
+  return True
+
+def getItemByEdit(fromuser, msgID, line):
+  with getConn(dblogin) as conn:
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Items WHERE FromUser = %s AND MessageID = %s AND Line = %s;", (fromuser, msgID, line))
+    return cur.fetchone()
+
+def editItems(items, fromuser, msgID, line = 0):
+  code = getCodeByEdit(fromuser, msgID)
+  for item in items:
+    if editItem(item, fromuser, msgID, line):
+      line += 1
+    else:
+      break;
+  if len(items) > line:
+    if code:
+      for item in items[line:]:
+        insertItem(code, item, fromuser, msgID, line)
+        line += 1
+  else:
+    removeExcessItems(fromuser, msgID, line)
+  return code
+
+def getCodeByEdit(fromuser, msgID):
+  with getConn(dblogin) as conn:
+    cur = conn.cursor()
+    cur.execute("SELECT List FROM Items WHERE FromUser = %s AND MessageID = %s;", (fromuser, msgID))
+    temp = cur.fetchone()
+    if temp:
+      if type(temp) == type(tuple()):
+        return temp[0]
+    return False
+
+def removeExcessItems(fromuser, msgID, line):
+  with getConn(dblogin) as conn:
+    cur = conn.cursor()
+    cur.execute("DELETE FROM Items WHERE FromUser = %s AND MessageID = %s AND Line >= %s;", (fromuser, msgID, line))
     conn.commit()
 
 def toggleListOpen(code):
