@@ -11,7 +11,7 @@ def initDB():
     cur.execute("CREATE TABLE IF NOT EXISTS Coworkers(List TEXT NOT NULL REFERENCES Lists(Code), Worker BIGINT NOT NULL, Name TEXT NOT NULL, Message TEXT NOT NULL DEFAULT '0');")
     cur.execute("CREATE TABLE IF NOT EXISTS InlineMessages(List TEXT NOT NULL REFERENCES Lists(Code), InlineID TEXT NOT NULL);")
     conn.commit()
-#TODO Edit every Items-manipulation to fit the new requirements
+
 def insertList(code, title, owner, name):
   with getConn(dblogin) as conn:
     cur = conn.cursor()
@@ -86,7 +86,7 @@ def getCodeByEdit(fromuser, msgID):
     if temp:
       if type(temp) == type(tuple()):
         return temp[0]
-    return False
+    return ""
 
 def removeExcessItems(fromuser, msgID, line):
   with getConn(dblogin) as conn:
@@ -169,6 +169,12 @@ def getOwnLists(user):
     cur = conn.cursor()
     cur.execute("""SELECT * FROM Lists WHERE Owner = %s
     OR Code IN (SELECT Code FROM Coworkers WHERE Worker = %s);""", (user, user))
+    return cur.fetchall()
+
+def getOwnedLists(user):
+  with getConn(dblogin) as conn:
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Lists WHERE Owner = %s;", (user,))
     return cur.fetchall()
 
 def getOwnerMessage(code):

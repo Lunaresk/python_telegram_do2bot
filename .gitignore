@@ -106,6 +106,9 @@ venv.bak/
 # backup files
 userdata
 
+# temporary files
+temp/
+
 # linux things
 .swp
 

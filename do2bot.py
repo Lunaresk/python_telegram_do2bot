@@ -3,8 +3,10 @@ from telegram.ext import (CommandHandler, MessageHandler, RegexHandler, Callback
 from telegram.ext.dispatcher import run_async
 from telegram.error import BadRequest
 from time import sleep
+from json import (load as jload, dump as jdump)
 from pickle import (load as pload, dump as pdump)
-from ..errorCallback import error_callback
+from tempfile import NamedTemporaryFile
+from ..errorCallback import contextCallback
 from . import dbFuncs
 from . import helpFuncs
 import logging
@@ -52,15 +54,18 @@ def start(update, context):
   return ConversationHandler.END
 
 def help(update, context):
-  update.message.reply_text("Here are some tips to use this bot:\nTo create a new list, use /new. Then enter a title for this list. When you're done, you can send a list of things here and this bot will insert it to the list.\nThe lower right button on the owner's list indicates whether the list is open or not. Only the owner can switch if the list is open. When open, other people who enters the unique code of your list will be added as operator for your list. This will grant them the possibility to add items to the list and recall the list with the inline function.\n\nThis bot is usable via inline mode. To see a list of your current lists, just type the bots name in the chat like '`@do2bot `'.", reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text = "Try it now", switch_inline_query_current_chat = "")]]))
+  message, args = update.message, context.args
+  if len(args) == 0:
+    message.reply_text("To create a new list, use /new. Then enter a title for this list. When you're done, you can send a list of things here and this bot will insert it to the list.\nThe lower right button on the owner's list indicates whether the list is open or not. Only the owner can switch if the list is open. When open, other people who enters the unique code of your list will be added as operator for your list. This will grant them the possibility to add items to the list and recall the list with the inline function.\n\nIf you need help with something specific, try this one out: `/help commands`\n\nThis bot is usable via inline mode. To see a list of your current lists, just type the bots name in the chat like '`@do2bot `'.", parse_mode = 'Markdown', reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text = "Try it now", switch_inline_query_current_chat = "")]]))
+  else:
+    message.reply_text(helpFuncs.getHelpText(args[0]))
 
 def new(update, context):
   update.message.reply_text("Please insert a name for the new list.")
   return SETNAME
 
 def setName(update, context):
-  user_data = context.user_data
-  message = update.message
+  message, user_data = update.message, context.user_data
   for i in range(10):
     code = helpFuncs.id_generator()
     if not dbFuncs.isAvailable(code):
@@ -148,6 +153,29 @@ def updateMessages(bot, code):
       if str(error) == "Message_id_invalid":
         dbFuncs.removeInlineMessage(inline[1])
 
+#TODO Future backup function, called with /backup
+def backup(update, context):
+  message, bot = update.message, context.bot
+  lists = dbFuncs.getOwnedLists(message.from_user['id'])
+  if len(lists[0]) == 0:
+    message.reply_text("You own no lists. There is no need for a backup.")
+  backuplist = []
+  for list in lists:
+    backuplist.append([])
+    backuplist[-1].extend(list[1:4])
+    backupitems = dbFuncs.getItems(list[0])
+    backuplist[-1].append([])
+    for item in backupitems:
+      backuplist[-1][-1].append(item[2:4])
+  with open('/home/shiro/gitProjects/telegramBots/do2bot/temp/do2backup.json', 'w+') as file:
+    jdump(backuplist, file)
+  with open('/home/shiro/gitProjects/telegramBots/do2bot/temp/do2backup.json', 'rb') as file:
+    bot.send_document(chat_id = message.from_user['id'], document = file)
+
+#TODO Future restore function, called with /restore
+def restore(update, context):
+  pass
+
 def updateKeyboard(bot, code):
   list = dbFuncs.getList(code)
   try:
@@ -201,8 +229,13 @@ def closeMessages(bot, code):
       pass
 
 def pushInline(update, context):
-  query, bot = update.callback_query, context.bot
+  query, bot, user_data = update.callback_query, context.bot, context.user_data
   actions = query.data.split("_")
+  if not actions[1] == 'r':
+    user_data.pop('closing', None)
+  if not (dbFuncs.isOwner(actions[0], query.from_user['id']) or dbFuncs.isCoworker(actions[0], query.from_user['id'])):
+    bot.answer_callback_query(callback_query_id = query.id, text = "You are not allowed to do that.")
+    return ConversationHandler.END
   if actions[1] == 'c':
     dbFuncs.updateItem(actions[2])
     bot.answer_callback_query(callback_query_id = query.id)
@@ -224,9 +257,13 @@ def pushInline(update, context):
     if check:
         dbFuncs.removeItems(actions[0])
     else:
-      closeMessages(bot, actions[0])
-      dbFuncs.removeList(actions[0])
-      bot.answer_callback_query(callback_query_id = query.id, text = "List removed")
+      if 'closing' in user_data and user_data['closing'] == actions[0]:
+        closeMessages(bot, actions[0])
+        dbFuncs.removeList(actions[0])
+        bot.answer_callback_query(callback_query_id = query.id, text = "List removed")
+      else:
+        user_data['closing'] = actions[0]
+        bot.answer_callback_query(callback_query_id = query.id, text = "If you really want to close the list, press again.", show_alert = True)
       return ConversationHandler.END
   elif actions[1] == 'o':
     dbFuncs.toggleListOpen(actions[0])
@@ -267,7 +304,7 @@ def createKeyboard(code, user):
     if item[3] == True:
       count += 1
       temp = "✅"
-    keyboard.append([InlineKeyboardButton(text = "{0} {1}{2}".format(temp, item[2], ''.join(["." for _ in range(100-len(item[2]))])), callback_data = u"{0}_c_{1}".format(code, item[0]))])
+    keyboard.append([InlineKeyboardButton(text = "{0} {1}{2}".format(temp, item[2][:100], ''.join(["⠀" for _ in range(100-len(item[2]))])), callback_data = u"{0}_c_{1}".format(code, item[0]))])
   if dbFuncs.isOwner(code, user):
     temp = "🗑"
     if count == 0 or count == len(items):
@@ -305,13 +342,14 @@ def main(updater):
 
   dispatcher.add_handler(newList)
   dispatcher.add_handler(CommandHandler('help', help, Filters.private))
+  dispatcher.add_handler(CommandHandler('backup', backup, Filters.private))
   dispatcher.add_handler(InlineQueryHandler(inlineQuery))
   dispatcher.add_handler(ChosenInlineResultHandler(chosenQuery))
   dispatcher.add_handler(CallbackQueryHandler(pushInline))
-  dispatcher.add_handler(RegexHandler('^\/.*', blankCode))
+  dispatcher.add_handler(MessageHandler(Filters.private&Filters.regex(r'^\/.*'), blankCode))
   dispatcher.add_handler(MessageHandler(Filters.text&Filters.private&(~Filters.update.edited_message), rcvMessage))
   dispatcher.add_handler(MessageHandler(Filters.text&Filters.private&Filters.update.edited_message, editMessage))
-  dispatcher.add_error_handler(error_callback)
+  dispatcher.add_error_handler(contextCallback)
 
 
   try:
