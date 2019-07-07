@@ -1,4 +1,5 @@
 from ..bottoken import getConn
+from . import helpFuncs
 
 dblogin = 'do2bot'
 
@@ -6,10 +7,11 @@ def initDB():
   with getConn(dblogin) as conn:
     cur = conn.cursor()
     conn.rollback()
-    cur.execute("CREATE TABLE IF NOT EXISTS Lists(Code TEXT PRIMARY KEY NOT NULL, Title TEXT NOT NULL, Owner BIGINT NOT NULL, Name TEXT NOT NULL, Message TEXT NOT NULL DEFAULT '0', Open BOOLEAN NOT NULL DEFAULT FALSE);")
+    cur.execute("CREATE TABLE IF NOT EXISTS Lists(Code TEXT PRIMARY KEY NOT NULL, Title TEXT NOT NULL, Owner BIGINT NOT NULL, Name TEXT NOT NULL, Message TEXT NOT NULL DEFAULT '0', Open BOOLEAN NOT NULL DEFAULT FALSE, AdminTerminal BOOLEAN NOT NULL DEFAULT FALSE);")
     cur.execute("CREATE TABLE IF NOT EXISTS Items(ID BIGSERIAL PRIMARY KEY NOT NULL, List TEXT REFERENCES Lists(Code), Item TEXT NOT NULL, Done BOOLEAN NOT NULL DEFAULT FALSE, FromUser BIGINT NOT NULL DEFAULT -1, MessageID BIGINT NOT NULL DEFAULT -1, Line SMALLINT NOT NULL DEFAULT 0);")
     cur.execute("CREATE TABLE IF NOT EXISTS Coworkers(List TEXT NOT NULL REFERENCES Lists(Code), Worker BIGINT NOT NULL, Name TEXT NOT NULL, Message TEXT NOT NULL DEFAULT '0');")
     cur.execute("CREATE TABLE IF NOT EXISTS InlineMessages(List TEXT NOT NULL REFERENCES Lists(Code), InlineID TEXT NOT NULL);")
+    cur.execute("CREATE TABLE IF NOT EXISTS Subitems(Subitem BIGINT PRIMARY KEY NOT NULL, Item BIGINT NOT NULL REFERENCES Items(ID));")
     conn.commit()
 
 def insertList(code, title, owner, name):
@@ -88,16 +90,28 @@ def getCodeByEdit(fromuser, msgID):
         return temp[0]
     return ""
 
+def getItemsByEdit(fromuser, msgID):
+  with getConn(dblogin) as conn:
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Items WHERE FromUser = %s AND MessageID = %s;", (fromuser, msgID))
+    return cur.fetchall()
+
 def removeExcessItems(fromuser, msgID, line):
   with getConn(dblogin) as conn:
     cur = conn.cursor()
     cur.execute("DELETE FROM Items WHERE FromUser = %s AND MessageID = %s AND Line >= %s;", (fromuser, msgID, line))
     conn.commit()
 
-def toggleListOpen(code):
+def toggleListOpen(code, state = False):
   with getConn(dblogin) as conn:
     cur = conn.cursor()
-    cur.execute("UPDATE Lists SET Open = NOT Open WHERE Code = %s;", (code,))
+    cur.execute("UPDATE Lists SET Open = %s WHERE Code = %s;", (state, code))
+    conn.commit()
+
+def toggleAdminKeyboard(code, state = False):
+  with getConn(dblogin) as conn:
+    cur = conn.cursor()
+    cur.execute("UPDATE Lists SET AdminTerminal = %s WHERE Code = %s", (state, code))
     conn.commit()
 
 def updateItem(id):
@@ -227,6 +241,17 @@ def getLikelyLists(pattern, user):
       Code LIKE %s OR Title LIKE %s))
       ORDER BY Message DESC;""", (user, pattern, user, pattern, user, pattern, pattern))
     return cur.fetchall()
+
+def sortList(code, sorting):
+  with getConn(dblogin) as conn:
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Items WHERE List = %s ORDER BY ID;", (code,))
+    items = cur.fetchall()
+    newSort = helpFuncs.rearrangeList(items, sorting)
+    cur.execute("UPDATE Items SET Id = -Id WHERE List = %s;", (code,))
+    for item in items:
+      cur.execute("UPDATE Items SET Id = %s WHERE Id = %s;", (item[0], -newSort.pop(0)))
+    conn.commit()
 
 def isAvailable(code):
   with getConn(dblogin) as conn:
