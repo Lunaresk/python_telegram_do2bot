@@ -16,23 +16,26 @@ logger = logging.getLogger(__name__)
 
 SETNAME = range(1)
 SETTINGS = range(1)
-ListFooter = {"Check": "c", "Options": "o", "Remove": "r", "Exit": "e"}
-Options = {"👤🔄👥": "open", "✅⬆": "sortUp", "✅⬇": "sortDn", "↩": "back"}
-OptionsOrder = ["👤🔄👥", "✅⬆", "✅⬇", "↩"]
+ListFooter = {"Check": 'c', "Options": 'o', "Remove": 'r', "Exit": 'e', "CheckSub": 's'}
+OptionsOrder = ["Access: {0}", "Done to top", "Done to bottom", "↩"]
+Options = {OptionsOrder[0]: "open", OptionsOrder[1]: "sortUp", OptionsOrder[2]: "sortDn", OptionsOrder[3]: "back"}
 BOTTOKEN = 'do2bot'
-backupsDir = "/home/shiro/gitProjects/telegramBots/do2bot/temp"
+workingDir = "/home/shiro/gitProjects/telegramBots/" + BOTTOKEN
+backupsDir = workingDir + "/temp"
+transDir = workingDir + "/translations"
 
 def start(update, context):
   message, args, bot, user_data = update.message, context.args, context.bot, context.user_data
+  userid = message.from_user['id']
   if len(args) == 0:
-    message.reply_text("Welcome to your new Do To Bot. This bot can be controlled via inline method. So just type '`@do2bot `' in your chat and wait a moment.", parse_mode = 'Markdown', reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text = "Try it now", switch_inline_query_current_chat = "")]]))
+    message.reply_text(getTranslation(userid, "welcome"), parse_mode = 'Markdown', reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text = getTranslation(userid, "try"), switch_inline_query_current_chat = "")]]))
   else:
     if len(args[0]) != 10:
       if args[0] == "new":
         return new(update, context)
-      message.reply_text("The argument is invalid. The link provided for you might be incorrect. Please ask the owner of the list for the code of his list.")
+      message.reply_text(getTranslation(userid, "invalidargs"))
     elif not dbFuncs.isAvailable(args[0]):
-      message.reply_text("The list you are searching for is not existing.")
+      message.reply_text(getTranslation(userid, "notexisting"))
     elif not dbFuncs.isCoworker(args[0], message.from_user['id']):
       if dbFuncs.isOwner(args[0], message.from_user['id']):
         msgno = dbFuncs.getSpecificMessage(args[0], message.from_user['id'])[0]
@@ -47,7 +50,7 @@ def start(update, context):
         dbFuncs.toggleAdminKeyboard(args[0])
         dbFuncs.updateOwner(args[0], user_data['current'])
       elif not dbFuncs.isOpen(args[0]):
-        message.reply_text("The list you are searching is not open. Please contact the list owner.")
+        message.reply_text(getTranslation(userid, "notopen"))
       else:
         user_data['list'], user_data['current'] = args[0], message.reply_text(listText(args[0]), parse_mode = 'Markdown', disable_web_page_preview = True, reply_markup = createKeyboard(args[0], message.from_user['id'])).message_id
         dbFuncs.insertCoworker(args[0], message.from_user['id'], message.from_user['first_name'], user_data['current'])
@@ -60,26 +63,29 @@ def start(update, context):
 
 def help(update, context):
   message, args = update.message, context.args
+  userid = message.from_user['id']
   if len(args) == 0:
-    message.reply_text("To create a new list, use /new. Then enter a title for this list. When you're done, you can send a list of things here and this bot will insert it to the list.\nThe lower right button on the owner's list indicates whether the list is open or not. Only the owner can switch if the list is open. When open, other people who enters the unique code of your list will be added as operator for your list. This will grant them the possibility to add items to the list and recall the list with the inline function.\n\nIf you need help with something specific, try this one out: `/help commands`\n\nThis bot is usable via inline mode. To see a list of your current lists, just type the bots name in the chat like '`@do2bot `'.", parse_mode = 'Markdown', reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text = "Try it now", switch_inline_query_current_chat = "")]]))
+    message.reply_text(getTranslation(userid, "help"), parse_mode = 'Markdown', reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text = getTranslation(userid, "try"), switch_inline_query_current_chat = "")]]))
   else:
-    message.reply_text(helpFuncs.getHelpText(args[0]))
+    message.reply_text(helpFuncs.getHelpText(args[0], getTranslation(userid, "helpargs")))
 
 def new(update, context):
-  update.message.reply_text("Please insert a name for the new list.")
+  userid = update.message.from_user['id']
+  update.message.reply_text(getTranslation(userid, "insertname"))
   return SETNAME
 
 def setName(update, context):
   message, user_data = update.message, context.user_data
+  userid = message.from_user['id']
   for i in range(10):
     code = helpFuncs.id_generator()
     if not dbFuncs.isAvailable(code):
       break
   if dbFuncs.isAvailable(code):
-    message.reply_text("I wasn't able to create a new list. I'm sorry, please try again.")
+    message.reply_text(getTranslation(userid, "notcreated"))
     return ConversationHandler.END
-  dbFuncs.insertList(code, message.text, message.from_user['id'], message.from_user['first_name'])
-  user_data['list'], user_data['current'] = code, message.reply_text(listText(code), parse_mode="Markdown", disable_web_page_preview = True, reply_markup = createKeyboard(code, message.from_user['id'])).message_id
+  dbFuncs.insertList(code, message.text, userid, message.from_user['first_name'])
+  user_data['list'], user_data['current'] = code, message.reply_text(listText(code), parse_mode="Markdown", disable_web_page_preview = True, reply_markup = createKeyboard(code, userid)).message_id
   dbFuncs.updateOwner(code, user_data['current'])
   return ConversationHandler.END
 
@@ -90,6 +96,7 @@ def blankCode(update, context):
 @run_async
 def rcvMessage(update, context):
   message, bot, user_data = update.message, context.bot, context.user_data
+  userid = message.from_user['id']
   tester = message.text[-5:]
   if 'tester' in user_data and user_data['tester'] == tester:
     user_data['list'] = message.text.split("/")[-1][:10]
@@ -105,11 +112,9 @@ def rcvMessage(update, context):
       except:
         pass
     count = 2
-    while 'imid' not in user_data:
+    while 'imid' not in user_data and count != 0:
       sleep(1)
       count -= 1
-      if count == 0:
-        break
     try:
       dbFuncs.updateSpecificMessage(user_data['list'], message.from_user['id'], user_data['imid'])
       dbFuncs.removeInlineMessage(user_data['imid'])
@@ -117,23 +122,39 @@ def rcvMessage(update, context):
       pass #TODO
   else:
     if 'list' not in user_data:
-      message.reply_text("No list specified. Please choose one or create a list first.")
+      message.reply_text(getTranslation(userid, "notspecified"))
       return
     items = message.text.split("\n")
-    dbFuncs.insertItems(user_data['list'], items, message.from_user['id'], message.message_id)
+    if not dbFuncs.insertItems(user_data['list'], items, message.from_user['id'], message.message_id):
+      message.reply_text(getTranslation(userid, "buttonlimit"))
   updateMessages(bot, user_data['list'])
   temp = user_data['list']
   user_data.clear()
   user_data['list'] = temp
 
+def rcvReply(update, context):
+  message, replymsg, bot = update.message, update.message.reply_to_message, context.bot
+  userid, replyid = message.from_user['id'], replymsg.message_id
+  corelist = dbFuncs.getItemsByEdit(userid, replyid)[0][1]
+  items = message.text.split("\n")
+  if not (dbFuncs.isCoworker(corelist, userid) or dbFuncs.isOwner(corelist, userid)):
+    message.reply_text(getTranslation(userid, "notallowed"))
+  if not dbFuncs.insertSubItems(replyid, items, userid, message.message_id):
+    message.reply_text(getTranslation(userid, "notunique"))
+  else:
+    updateMessages(bot, corelist)
+
 def editMessage(update, context):
   message, bot = update.edited_message, context.bot
-  code = dbFuncs.editItems(message.text.split("\n"), message.from_user['id'], message.message_id)
-  updateMessages(bot, code)
+  try:
+    code = dbFuncs.editItems(message.text.split("\n"), message.from_user['id'], message.message_id)
+    updateMessages(bot, code)
+  except:
+    pass #TODO
 
 def updateMessages(bot, code):
   list = dbFuncs.getList(code)
-  if not list[6]:
+  if not dbFuncs.getAdminTerminal(code):
     try:
       if helpFuncs.isInt(list[4]):
         bot.edit_message_text(chat_id = list[2], message_id = list[4], text = listText(code), parse_mode = 'Markdown', disable_web_page_preview = True, reply_markup = createKeyboard(code, list[2]))
@@ -142,6 +163,8 @@ def updateMessages(bot, code):
     except BadRequest as error:
       if str(error) == "Message is not modified":
         pass #ummm... TODO
+      else:
+        logger.error(error)
   coworkers = dbFuncs.getCoworkers(code)
   for coworker in coworkers:
     try:
@@ -150,7 +173,7 @@ def updateMessages(bot, code):
       else:
         bot.edit_message_text(inline_message_id = coworker[3], text = listText(code), parse_mode = 'Markdown', disable_web_page_preview = True, reply_markup = createKeyboard(code, coworker[1]))
     except BadRequest as error:
-      pass #ummm... TODO
+      logger.error(error) #ummm... TODO
   inlines = dbFuncs.getInlineMessages(code)
   for inline in inlines:
     try:
@@ -158,13 +181,15 @@ def updateMessages(bot, code):
     except BadRequest as error:
       if str(error) == "Message_id_invalid":
         dbFuncs.removeInlineMessage(inline[1])
+      else:
+        logger.error(error)
 
 #TODO Future backup function, called with /backup
 def backup(update, context):
   message, bot = update.message, context.bot
   lists = dbFuncs.getOwnedLists(message.from_user['id'])
   if len(lists[0]) == 0:
-    message.reply_text("You own no lists. There is no need for a backup.")
+    message.reply_text(getTranslation(userid, "notbackedup"))
   backuplist = []
   for list in lists:
     backuplist.append([])
@@ -185,7 +210,7 @@ def restore(update, context):
 def updateKeyboard(bot, code):
   list = dbFuncs.getList(code)
   try:
-    if not list[6]:
+    if not dbFuncs.getAdminTerminal(code):
       if helpFuncs.isInt(list[4]):
         bot.edit_message_reply_markup(chat_id = list[2], message_id = list[4], reply_markup = createKeyboard(code, list[2]))
       else:
@@ -237,19 +262,22 @@ def closeMessages(bot, code):
 
 def pushInline(update, context):
   query, bot, user_data = update.callback_query, context.bot, context.user_data
+  userid = query.from_user['id']
   action = query.data.split("_")
   if not action[1] == ListFooter["Remove"]:
     user_data.pop('closing', None)
-  if not (dbFuncs.isOwner(action[0], query.from_user['id']) or dbFuncs.isCoworker(action[0], query.from_user['id'])):
-    bot.answer_callback_query(callback_query_id = query.id, text = "You are not allowed to do that.")
+  if not (dbFuncs.isOwner(action[0], userid) or dbFuncs.isCoworker(action[0], userid)):
+    bot.answer_callback_query(callback_query_id = query.id, text = getTranslation(userid, "notallowed"))
     return ConversationHandler.END
   if action[1] == ListFooter["Check"]:
     dbFuncs.updateItem(action[2])
+  elif action[1] == ListFooter["CheckSub"]:
+    dbFuncs.updateSubItem(action[2])
   elif action[1] == ListFooter["Exit"]:
-    bot.edit_message_text(chat_id = query.from_user['id'], message_id = dbFuncs.getSpecificMessage(action[0], query.from_user['id'])[0], text = "Revoked")
-    dbFuncs.removeCoworker(action[0], query.from_user['id'])
+    bot.edit_message_text(chat_id = userid, message_id = dbFuncs.getSpecificMessage(action[0], userid)[0], text = getTranslation(userid, "revoked"))
+    dbFuncs.removeCoworker(action[0], userid)
     updateMessages(bot, action[0])
-    bot.answer_callback_query(callback_query_id = query.id, text = "Left the list")
+    bot.answer_callback_query(callback_query_id = query.id, text = getTranslation(userid, "leftlist"))
     return ConversationHandler.END
   elif action[1] == ListFooter["Remove"]:
     items = dbFuncs.getItems(action[0])
@@ -266,13 +294,16 @@ def pushInline(update, context):
       if 'closing' in user_data and user_data['closing'] == action[0]:
         closeMessages(bot, action[0])
         dbFuncs.removeList(action[0])
-        bot.answer_callback_query(callback_query_id = query.id, text = "List removed")
+        bot.answer_callback_query(callback_query_id = query.id, text = getTranslation(userid, "removelist"))
       else:
         user_data['closing'] = action[0]
-        bot.answer_callback_query(callback_query_id = query.id, text = "If you really want to close the list, press again.", show_alert = True)
+        bot.answer_callback_query(callback_query_id = query.id, text = getTranslation(userid, "confirmremove"), show_alert = True)
       return ConversationHandler.END
   elif action[1] == ListFooter["Options"]:
-    bot.edit_message_reply_markup(chat_id = query.from_user['id'], message_id = query.message.message_id, reply_markup = createAdminKeyboard(action[0], query.from_user["id"]))
+    if query.inline_message_id:
+      bot.edit_message_reply_markup(inline_message_id = query.inline_message_id, reply_markup = createAdminKeyboard(action[0], userid))
+    else:
+      bot.edit_message_reply_markup(chat_id = userid, message_id = query.message.message_id, reply_markup = createAdminKeyboard(action[0], userid))
     dbFuncs.toggleAdminKeyboard(action[0], True)
     return SETTINGS
   updateKeyboard(bot, action[0])
@@ -281,15 +312,17 @@ def pushInline(update, context):
 
 def pushAdmin(update, context):
   query, bot = update.callback_query, context.bot
+  userid, msgid = query.from_user['id'], query.message.message_id
   action = query.data.split("_")
-  if action[1] == Options["👤🔄👥"]:
+  if action[1] == Options[OptionsOrder[0]]:
     dbFuncs.toggleListOpen(action[0], not dbFuncs.isOpen(action[0]))
-    bot.answer_callback_query(callback_query_id = query.id, text = "List access set to {0}".format("Open" if dbFuncs.isOpen(action[0]) else "Closed"))
-  elif action[1] == Options["✅⬆"] or action[1] == Options["✅⬇"]:
+    bot.answer_callback_query(callback_query_id = query.id, text = getTranslation(userid, "listaccess").format(getTranslation(userid, "open") if dbFuncs.isOpen(action[0]) else getTranslation(userid, "closed")))
+    bot.edit_message_reply_markup(chat_id = userid, message_id = msgid, reply_markup = createAdminKeyboard(action[0], userid))
+  elif action[1] == Options[OptionsOrder[1]] or action[1] == Options[OptionsOrder[2]]:
     dbFuncs.sortList(action[0], action[1])
-    bot.answer_callback_query(callback_query_id = query.id, text = "List items rearranged")
-  elif action[1] == Options["↩"]:
-    bot.edit_message_reply_markup(chat_id = query.from_user['id'], message_id = query.message.message_id, reply_markup = createKeyboard(action[0], query.from_user["id"]))
+    bot.answer_callback_query(callback_query_id = query.id, text = getTranslation(userid, "rearrangeditems"))
+  elif action[1] == Options[OptionsOrder[3]]:
+    bot.edit_message_reply_markup(chat_id = userid, message_id = msgid, reply_markup = createKeyboard(action[0], userid))
     dbFuncs.toggleAdminKeyboard(action[0])
     return ConversationHandler.END
   updateMessages(bot, action[0])
@@ -299,8 +332,21 @@ def cancel(update, context):
   context.user_data.clear()
   return ConversationHandler.END
 
+def getTranslation(userID, text):
+  lang = dbFuncs.getUser(userID)[1]
+  with open("{0}/{1}.json".format(transDir, lang), 'r') as transtext:
+    botText = jload(transtext)
+  if not text:
+    return botText
+  if text in botText:
+    return botText[text]
+  with open("{0}/en.json".format(transDir), 'r') as transtext:
+    botText = jload(transtext)
+  return botText[text]
+
 def inlineQuery(update, context):
   query, user_data = update.inline_query, context.user_data
+  userid = query.from_user['id']
   term = query.query
   ownLists = []
   user_data['tester'] = helpFuncs.id_generator(size = 5)
@@ -311,15 +357,17 @@ def inlineQuery(update, context):
   resultList = []
   for list in ownLists:
     resultList.append(InlineQueryResultArticle(id = list[0], title = list[1], description = list[0], thumb_url = "http://icons.iconarchive.com/icons/google/noto-emoji-objects/1024/62930-clipboard-icon.png", reply_markup = createKeyboard(list[0], -1), input_message_content = InputTextMessageContent(message_text = listText(list[0]) + " `{0}`".format(user_data['tester']), parse_mode = 'Markdown', disable_web_page_preview = False)))
-  query.answer(results = resultList, cache_time = 0, switch_pm_text = "Create new list", switch_pm_parameter = "new")
+  query.answer(results = resultList, cache_time = 0, switch_pm_text = getTranslation(userid, "newlist"), switch_pm_parameter = "new")
 
 @run_async
 def chosenQuery(update, context):
-  result = update.chosen_inline_result
+  result, bot = update.chosen_inline_result, context.bot
   context.user_data['imid'] = result.inline_message_id
   dbFuncs.insertInlineMessage(result.result_id, result.inline_message_id)
+  sleep(1)
+  updateMessages(bot, result.result_id)
 
-def createKeyboard(code, user):
+def createKeyboard(code, user, page = 0):
   keyboard = []
   items = dbFuncs.getItems(code)
   count = 0
@@ -328,7 +376,18 @@ def createKeyboard(code, user):
     if item[3] == True:
       count += 1
       temp = "✅"
-    keyboard.append([InlineKeyboardButton(text = "{0} {1}{2}".format(temp, item[2][:255], ''.join(["⠀" for _ in range(255-len(item[2]))])), callback_data = u"{0}_{1}_{2}".format(code, ListFooter["Check"], item[0]))])
+    keyboard.append([InlineKeyboardButton(text = "{0} {1}{2}".format(temp, item[2][:250], ''.join(["⠀" for _ in range(250-len(item[2]))])), callback_data = u"{0}_{1}_{2}".format(code, ListFooter["Check"], item[0]))])
+    if dbFuncs.hasSubItems(item[0]):
+      subitems = dbFuncs.getSubItems(item[0])
+      for subitem in subitems:
+        subtemp = "├"
+        if subitem == subitems[-1]:
+          subtemp = "└"
+        temp2 = "◻"
+        if subitem[3] == True:
+          temp2 = "✅"
+        subtemp += temp2
+        keyboard.append([InlineKeyboardButton(text = "{0} {1}{2}".format(subtemp, subitem[2][:249], ''.join(["⠀" for _ in range(249-len(subitem[2]))])), callback_data = u"{0}_{1}_{2}".format(code, ListFooter["CheckSub"], subitem[0]))])
   if dbFuncs.isOwner(code, user):
     temp = "🗑"
     if count == 0 or count == len(items):
@@ -342,10 +401,11 @@ def createKeyboard(code, user):
     keyboard.append([InlineKeyboardButton(text = "➕", url = "https://telegram.me/do2bot?start={0}".format(code))])
   return InlineKeyboardMarkup(keyboard)
 
-def createAdminKeyboard(code, user):
-  keyboard = []
-  k = 0
-  for i in OptionsOrder:
+def createAdminKeyboard(code, userid):
+  keyboard = [[]]
+  k = 2
+  keyboard[-1].append(InlineKeyboardButton(text = OptionsOrder[0].format(getTranslation(userid, "open") if dbFuncs.isOpen(code) else getTranslation(userid, "closed")), callback_data = u"{0}_{1}".format(code, Options[OptionsOrder[0]])))
+  for i in OptionsOrder[1:]:
     if k == 0:
       keyboard.append([])
       k = 3
@@ -386,13 +446,15 @@ def main(updater):
 
   dispatcher.add_handler(newList)
   dispatcher.add_handler(listHandler)
+  dispatcher.add_handler(CallbackQueryHandler(pushInline))
   dispatcher.add_handler(CommandHandler('help', help, Filters.private))
   dispatcher.add_handler(CommandHandler('backup', backup, Filters.private))
   dispatcher.add_handler(InlineQueryHandler(inlineQuery))
   dispatcher.add_handler(ChosenInlineResultHandler(chosenQuery))
   dispatcher.add_handler(MessageHandler(Filters.private&Filters.regex(r'^\/.*'), blankCode))
-  dispatcher.add_handler(MessageHandler(Filters.text&Filters.private&(~Filters.update.edited_message), rcvMessage))
   dispatcher.add_handler(MessageHandler(Filters.text&Filters.private&Filters.update.edited_message, editMessage))
+  dispatcher.add_handler(MessageHandler(Filters.private&Filters.text&Filters.reply&(~Filters.update.edited_message), rcvReply))
+  dispatcher.add_handler(MessageHandler(Filters.text&Filters.private&(~Filters.update.edited_message), rcvMessage))
   dispatcher.add_error_handler(contextCallback)
 
 
