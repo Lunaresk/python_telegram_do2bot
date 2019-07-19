@@ -1,5 +1,5 @@
 from ..bottoken import getConn
-from . import helpFuncs
+from .helpFuncs import rearrangeList as hFRearrange
 
 dblogin = 'do2bot'
 
@@ -290,7 +290,7 @@ def getUser(tid):
   if temp:
     return temp
   insertUser(tid)
-  return (temp if temp else (tid, 'en'))
+  return (tid, 'en')
 
 def getList(code):
   with getConn(dblogin) as conn:
@@ -392,8 +392,7 @@ def sortList(code, sorting):
     cur = conn.cursor()
     cur.execute("SELECT * FROM Items WHERE List = %s ORDER BY ID;", (code,))
     items = cur.fetchall()
-    newSort = helpFuncs.rearrangeList(items, sorting)
-    cur.e
+    newSort = hFRearrange(items, sorting)
     cur.execute("UPDATE Items SET Id = -Id WHERE List = %s;", (code,))
     for item in items:
       cur.execute("UPDATE Items SET Id = %s WHERE Id = %s;", (item[0], -newSort.pop(0)))
