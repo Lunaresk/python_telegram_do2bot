@@ -61,7 +61,10 @@ msgid ""
 "👤 means, that the list is currently closed and usage is restricted to the owner and users, who already joined the list. Pushing this button will open the list for everyone and will change the icon to 👥.\n"
 "✅⬆ and ✅⬇ will reorder already done tasks to the top/bottom of the list, respectively.\n"
 "↩ to go back to the list."
-msgstr "👤 significa que la lista esta cerrada y el uso esta restringido a el dueño y los usuarios que ya se añadieron a la lista, Pulsar esta botón abrirá la lista para cualquiera y cambiara el icono a 👥.\n"
+msgstr ""
+"👤 significa que la lista esta cerrada y el uso esta restringido a el dueño y los usuarios que ya se añadieron a la lista, Pulsar esta botón abrirá la lista para cualquiera y cambiara el icono a 👥.\n"
+"✅⬆ y ✅⬇ reordenará las tareas ya realizadas en la parte superior/inferior de la lista, respectivamente. \n"
+"↩ para volver a la lista."
 
 #: helpFuncs.py:43
 msgid "Sharing a list is made with the inline function of telegram. You can either use the middle button at the bottom of the list or type @do2bot and the name or the code of your list to find and send it."
