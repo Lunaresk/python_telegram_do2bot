@@ -89,7 +89,7 @@ msgstr "Acceso a la lista establecido a {0}"
 
 #: do2bot.py:348
 msgid "Open"
-msgstr ""
+msgstr "Abierto"
 
 #: do2bot.py:355
 msgid "List items rearranged"
