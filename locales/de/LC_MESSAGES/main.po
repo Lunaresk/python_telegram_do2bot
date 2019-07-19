@@ -4,14 +4,14 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: 0.9\n"
 "POT-Creation-Date: 2019-07-18 23:15+CEST\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
-"Content-Transfer-Encoding: ENCODING\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
 
 
@@ -21,7 +21,7 @@ msgstr ""
 
 #: do2bot.py:38
 msgid "Try it now"
-msgstr "Probier es aus"
+msgstr ""
 
 #: do2bot.py:44
 msgid "The argument is invalid. The link provided for you might be incorrect. Please ask the owner of the list for the code of his list."
