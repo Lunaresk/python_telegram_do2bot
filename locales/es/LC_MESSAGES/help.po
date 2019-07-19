@@ -6,9 +6,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.9\n"
 "POT-Creation-Date: 2019-07-18 23:20+CEST\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"PO-Revision-Date: 2019-07-19 11:20+CEST\n"
+"Last-Translator: scrhall <scrhall@scrhall.com>\n"
+"Language-Team: scrhall <scrhall@scrhall.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -24,10 +24,15 @@ msgid ""
 "\n"
 "This bot is usable via inline mode. To see a list of your current lists, just type the bots name in the chat like '`@do2bot `'."
 msgstr ""
+"Para crear una nueva lista usa '/new'. A continuacion podras añadir un titulo para la lista. Una vez creada, podras ir enviando elementos y el bot los insertara en la lista.\n"
+"El boton situado a la derecha indica si la lista es abierta o no. Solo el dueño de la lista puede cambiar esta opcion. Si la lista es abierta, cualquier persona con la que compartas la lista tendra la posibilidad de añadir y modificar los elementos de la lista.\n"
+"\n"
+"Este bot se puede usar en modo 'en línea'. Para poder ver en este modo la listas disponibles, solo debes de escribir en el chant '@do2bot '."
+
 
 #: helpFuncs.py:23
 msgid "To make backups, use the /backup command. The bot then will take your stored lists and pack them in a .json file and send this one file to you. This function is also currently being developed, so there will be more functions to this soon."
-msgstr ""
+msgstr "Para crear copias de seguridad, puedes usar el comando '/backup'. El bot extraera la informacion de tus listas y devolvera un fichero en formato json. Esta funcion esta en desarrollo."
 
 #: helpFuncs.py:26
 msgid ""
@@ -41,15 +46,15 @@ msgstr ""
 
 #: helpFuncs.py:28
 msgid "Due to the way Telegram creates and limits inline buttons, there can't be displayed more than 23 rows of buttons. Therefore, I restricted the items per list to a maximum of 20 items."
-msgstr ""
+msgstr "Debido a la forma en la que telegram crea y limita los botones, no se pueden mostrar mas de 23 filas de botones. Por ello, se limitan a un maximo de 20 elementos por lista"
 
 #: helpFuncs.py:31
 msgid "If you want to make a new list, use the /new command or the inline function, type in what title you want and that's it."
-msgstr ""
+msgstr "Si quieres crear una nueva lista, usa el comando '/new' o función en linea, escribe el titulo que quieras y ya estará creada."
 
 #: helpFuncs.py:33
 msgid "This bot uses a permission system. Per default, nobody except you can modify a list. To change this, you have to go to the list settings and press the upper left button (👤) and the ones you want to work on the list needs to press the corresponding link of the list you shared. Please remember that as long as your list is marked as open, anyone with the link/code can join and manipulate it, so remember to close it again :)"
-msgstr ""
+msgstr "Este bot usa un sistema de permisos, por defecto nadie puede modificar tus listas. Para cambiar esto, tienes que ir a la configuración de la lista y pulsar el botón de arriba a la izquierda (👤) y después compartir la lista con quien quieras que pueda editarla. Por favor, recuerda que al marcar la lista como abierta, cualquiera con quien compartas la lista tendrá acceso total a la lista, aunque siempre puedes cerrarla de nuevo :)"
 
 #: helpFuncs.py:38
 msgid ""
@@ -57,14 +62,17 @@ msgid ""
 "✅⬆ and ✅⬇ will reorder already done tasks to the top/bottom of the list, respectively.\n"
 "↩ to go back to the list."
 msgstr ""
+"👤 significa que la lista esta cerrada y el uso esta restringido a el dueño y los usuarios que ya se añadieron a la lista, Pulsar esta botón abrirá la lista para cualquiera y cambiara el icono a 👥.\n"
+"✅⬆ y ✅⬇ reordenará las tareas ya realizadas en la parte superior/inferior de la lista, respectivamente. \n"
+"↩ para volver a la lista."
 
 #: helpFuncs.py:43
 msgid "Sharing a list is made with the inline function of telegram. You can either use the middle button at the bottom of the list or type @do2bot and the name or the code of your list to find and send it."
-msgstr ""
+msgstr "Compartir una lista se realiza mediante la función en linea. tu puedes usar el botón central de la lista o escribir '@do2bot' y el nombre o el código de tu lista para enviarla."
 
 #: helpFuncs.py:46
 msgid "To create a sublist, you have to insert a single item first. Then, reply to this message you just sent and the items will be inserted as subitems for the previously inserted item. Please note! Subitems are under the same restrictions as stated in '/help limitations'."
-msgstr ""
+msgstr "Para crear una sublist, tienes que insertar un elemento primero. Despues, responde a ese elemento y se añadiran como subelementos al elemento al que se ha respondido. ¡Tenga en cuenta! que los subelementos están limitados de la misma forma que los elementos normales, puede ver las limitaciones con el comando '/help limitations'."
 
 #: helpFuncs.py:49
 msgid ""
@@ -73,11 +81,16 @@ msgid ""
 "If you want to support me, you can do so by donating a bit via the following link:\n"
 "https://paypal.me/pools/c/8fWVnNBFaS for one-time donations."
 msgstr ""
+"Este bot es de código abierto y el código está disponible en GitHub. Si necesitas ayuda con algo o con el enlace de GitHub, únete a @do2chat y pregunta al creador:3 \n"
+"\n"
+"Si quieres apoyarme, puedes hacerlo donando a través del siguiente enlace: \n"
+"https://paypal.me/pools/c/8fWVnNBFaS para donaciones únicas".
 
 #: helpFuncs.py:52
 msgid ""
 "If you need help with something specific, try /help with one of these commands:\n"
 msgstr ""
+"Si necesitas ayuda con algo específico, prueba /help con uno de estos comandos: \ n"
 
 #: helpFuncs.py:55
 msgid ""
@@ -85,4 +98,6 @@ msgid ""
 "\n"
 "For example: /help support"
 msgstr ""
-
+"\n"
+"\n"
+"Por ejemplo: /help support"

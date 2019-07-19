@@ -6,9 +6,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.9\n"
 "POT-Creation-Date: 2019-07-18 23:15+CEST\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"PO-Revision-Date: 2019-07-19 11:40+CEST\n"
+"Last-Translator: scrhall <scrhall@scrhall.com>\n"
+"Language-Team: scrhall <scrhall@scrhall.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -17,85 +17,84 @@ msgstr ""
 
 #: do2bot.py:35
 msgid "Welcome to your new Do To Bot. This bot can be controlled via inline method. So just type '`@do2bot `' in your chat and wait a moment."
-msgstr ""
+msgstr "Bienvenido a tu nuevo Do To Bot. Este bot puede ser controlado con el método en linea. Solo debes de escribir '@do2bot ' en el chat y esperar un momento."
 
 #: do2bot.py:38
 msgid "Try it now"
-msgstr ""
+msgstr "Prueba ahora"
 
 #: do2bot.py:44
 msgid "The argument is invalid. The link provided for you might be incorrect. Please ask the owner of the list for the code of his list."
-msgstr ""
+msgstr "El argumento no es valido. El link parece incorrecto. por favor pregunta de nuevo al dueño el código de la lista."
 
 #: do2bot.py:47
 msgid "The list you are searching for is not existing."
-msgstr ""
+msgstr "La lista que estas buscando no existe."
 
 #: do2bot.py:62
 msgid "The list you are searching is not open. Please contact the list owner."
-msgstr ""
+msgstr "La lista que estas buscando es cerrada. Por favor ponte en contacto con el dueño de la lista."
 
 #: do2bot.py:84
 msgid "Please insert a name for the new list."
-msgstr ""
+msgstr "Por favor indícame el nombre de la lista."
 
 #: do2bot.py:96
 msgid "I wasn't able to create a new list. I'm sorry, please try again."
-msgstr ""
+msgstr "No he podido crear una nueva lista. Lo siento, inténtalo de nuevo."
 
 #: do2bot.py:137
 msgid "No list specified. Please choose one or create a list first."
-msgstr ""
+msgstr "No se ha especificado ninguna lista. Por favor elige una o crea una lista primero."
 
 #: do2bot.py:141
 msgid "I wasn't able to insert every item due to restrictions in the length of the Inlinebuttons. I'm sorry."
-msgstr ""
+msgstr "No he podido insertar cada elemento por limitaciones en el tamaño. Lo siento."
 
 #: do2bot.py:154 do2bot.py:291
 msgid "You're not allowed to do that."
-msgstr ""
+msgstr "No tienes permitido hacer eso."
 
 #: do2bot.py:156
 msgid "The message you replied to is not showing an unique item of your list. It is not clear which item I should append the subitems to."
-msgstr ""
+msgstr "El mensaje que al que respondiste no es un elemento de tu lista. No esta claro a que elemento tengo que añadir este subelemento. "
 
 #: do2bot.py:207
 msgid "You own no lists. There is no need for a backup."
-msgstr ""
+msgstr "No eres dueño de ninguna lista. No hay necesidad para hacer una copia de seguridad."
 
 #: do2bot.py:298
 msgid "Revoked"
-msgstr ""
+msgstr "Revocado"
 
 #: do2bot.py:301
 msgid "Left the list"
-msgstr ""
+msgstr "A la izquierda de la lista"
 
 #: do2bot.py:318
 msgid "List removed"
-msgstr ""
+msgstr "Lista eliminada"
 
 #: do2bot.py:321
 msgid "If you really want to close the list, press again."
-msgstr ""
+msgstr "Si realmente quieres cerrar la lista, pulsa de nuevo"
 
 #: do2bot.py:348
 msgid "Closed"
-msgstr ""
+msgstr "Cerrada"
 
 #: do2bot.py:348
 msgid "List access set to {0}"
-msgstr ""
+msgstr "Acceso a la lista establecido a {0}"
 
 #: do2bot.py:348
 msgid "Open"
-msgstr ""
+msgstr "Abierto"
 
 #: do2bot.py:355
 msgid "List items rearranged"
-msgstr ""
+msgstr "Elementos de la lista reordenados"
 
 #: do2bot.py:395
 msgid "Create new list"
-msgstr ""
-
+msgstr "Crear nueva lista."
