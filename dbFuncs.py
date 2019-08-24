@@ -292,6 +292,12 @@ def getUser(tid):
   insertUser(tid)
   return (tid, 'en')
 
+def getUsers():
+  with getConn(dblogin) as conn:
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Users;")
+    return cur.fetchall()
+
 def getList(code):
   with getConn(dblogin) as conn:
     cur = conn.cursor()
