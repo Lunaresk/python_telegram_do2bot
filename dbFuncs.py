@@ -1,7 +1,7 @@
 from ..bottoken import getConn
 from .helpFuncs import rearrangeList as hFRearrange
 
-dblogin = 'lunaalphabot'
+dblogin = 'do2bot'
 
 def initDB():
   with getConn(dblogin) as conn:
