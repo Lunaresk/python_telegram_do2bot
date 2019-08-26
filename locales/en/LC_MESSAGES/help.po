@@ -4,85 +4,85 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: 0.9\n"
-"POT-Creation-Date: 2019-07-18 23:20+CEST\n"
-"PO-Revision-Date: 2019-07-19 08:35+CEST\n"
-"Last-Translator: Kai Pohl <@Lunaresk>\n"
-"Language-Team: English\n"
+"Project-Id-Version: 1.2\n"
+"POT-Creation-Date: 2019-08-20 16:30+CEST\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: ENCODING\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
 
 
 #: helpFuncs.py:16
-msgid ""
+msgid "help"
+msgstr ""
 "To create a new list, use /new. Then enter a title for this list. When you're done, you can send a list of things here and this bot will insert it to the list.\n"
 "The lower right button on the owner's list indicates whether the list is open or not. Only the owner can switch if the list is open. When open, other people who enters the unique code of your list will be added as operator for your list. This will grant them the possibility to add items to the list and recall the list with the inline function.\n"
 "\n"
 "If you need help with something specific, try this one out: `/help commands`\n"
 "\n"
 "This bot is usable via inline mode. To see a list of your current lists, just type the bots name in the chat like '`@do2bot `'."
-msgstr ""
 
-#: helpFuncs.py:23
-msgid "To make backups, use the /backup command. The bot then will take your stored lists and pack them in a .json file and send this one file to you. This function is also currently being developed, so there will be more functions to this soon."
-msgstr ""
+#: helpFuncs.py:18
+msgid "helpbackup"
+msgstr "To make backups, use the /backup command. The bot then will take your stored lists and pack them in a .json file and send this one file to you. This function is also currently being developed, so there will be more functions to this soon."
 
-#: helpFuncs.py:26
-msgid ""
+#: helpFuncs.py:20
+msgid "helpcredits"
+msgstr ""
 "Creator: Lunaresk\n"
 "Coder: Lunaresk\n"
 "Hoster: Lunaresk\n"
 "Profile Pic: Abdülkadir Coskun\n"
 "\n"
 "Inspired by: @dotobot from @olebedev"
-msgstr ""
+
+#: helpFuncs.py:22
+msgid "helplimitations"
+msgstr "Due to the way Telegram creates and limits inline buttons, there can't be displayed more than 23 rows of buttons. Therefore, I restricted the items per list to a maximum of 20 items."
+
+#: helpFuncs.py:24
+msgid "helpnew"
+msgstr "If you want to make a new list, use the /new command or the inline function, type in what title you want and that's it."
+
+#: helpFuncs.py:26
+msgid "helppermission"
+msgstr "This bot uses a permission system. Per default, nobody except you can modify a list. To change this, you have to go to the list settings and press the upper left button (👤) and the ones you want to work on the list needs to press the corresponding link of the list you shared. Please remember that as long as your list is marked as open, anyone with the link/code can join and manipulate it, so remember to close it again :)"
 
 #: helpFuncs.py:28
-msgid "Due to the way Telegram creates and limits inline buttons, there can't be displayed more than 23 rows of buttons. Therefore, I restricted the items per list to a maximum of 20 items."
+msgid "helpsettings"
 msgstr ""
-
-#: helpFuncs.py:31
-msgid "If you want to make a new list, use the /new command or the inline function, type in what title you want and that's it."
-msgstr ""
-
-#: helpFuncs.py:33
-msgid "This bot uses a permission system. Per default, nobody except you can modify a list. To change this, you have to go to the list settings and press the upper left button (👤) and the ones you want to work on the list needs to press the corresponding link of the list you shared. Please remember that as long as your list is marked as open, anyone with the link/code can join and manipulate it, so remember to close it again :)"
-msgstr ""
-
-#: helpFuncs.py:38
-msgid ""
 "👤 means, that the list is currently closed and usage is restricted to the owner and users, who already joined the list. Pushing this button will open the list for everyone and will change the icon to 👥.\n"
 "✅⬆ and ✅⬇ will reorder already done tasks to the top/bottom of the list, respectively.\n"
 "↩ to go back to the list."
-msgstr ""
 
-#: helpFuncs.py:43
-msgid "Sharing a list is made with the inline function of telegram. You can either use the middle button at the bottom of the list or type @do2bot and the name or the code of your list to find and send it."
-msgstr ""
+#: helpFuncs.py:30
+msgid "helpshare"
+msgstr "Sharing a list is made with the inline function of telegram. You can either use the middle button at the bottom of the list or type @do2bot and the name or the code of your list to find and send it."
 
-#: helpFuncs.py:46
-msgid "To create a sublist, you have to insert a single item first. Then, reply to this message you just sent and the items will be inserted as subitems for the previously inserted item. Please note! Subitems are under the same restrictions as stated in '/help limitations'."
-msgstr ""
+#: helpFuncs.py:32
+msgid "helpsublist"
+msgstr "To create a sublist, you have to insert a single item first. Then, reply to this message you just sent and the items will be inserted as subitems for the previously inserted item. Please note! Subitems are under the same restrictions as stated in '/help limitations'."
 
-#: helpFuncs.py:49
-msgid ""
+#: helpFuncs.py:34
+msgid "helpsupport"
+msgstr ""
 "This bot is open source and the code is available on GitHub. If you need help with anything or the GitHub link, please join @do2chat and ask the creator :3\n"
 "\n"
 "If you want to support me, you can do so by donating a bit via the following link:\n"
 "https://paypal.me/pools/c/8fWVnNBFaS for one-time donations."
-msgstr ""
 
-#: helpFuncs.py:52
-msgid ""
+#: helpFuncs.py:36
+msgid "helpcommands1"
+msgstr ""
 "If you need help with something specific, try /help with one of these commands:\n"
-msgstr ""
 
-#: helpFuncs.py:55
-msgid ""
+#: helpFuncs.py:39
+msgid "helpcommands2"
+msgstr ""
 "\n"
 "\n"
 "For example: /help support"
-msgstr ""
 

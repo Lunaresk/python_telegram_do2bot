@@ -46,7 +46,8 @@ def start(update, context):
             bot.edit_message_text(chat_id = message.chat_id, message_id = msgno, text = "↓")
           else:
             bot.edit_message_text(inline_message_id = msgno, text = "↓")
-        except:
+        except Exception as e:
+          logger.info(repr(e))
           print("Malicious message number")
         user_data['list'], user_data['current'] = args[0], message.reply_text(listText(args[0]), parse_mode = 'Markdown', disable_web_page_preview = True, reply_markup = createKeyboard(args[0], userid)).message_id
         dbFuncs.toggleAdminKeyboard(args[0])
@@ -111,13 +112,13 @@ def rcvMessage(update, context):
     if helpFuncs.isInt(user_data['old']):
       try:
         bot.edit_message_text(chat_id = userid, message_id = user_data['old'], text = '↓')
-      except:
-        pass
+      except Exception as e:
+        logger.info(repr(e))
     else:
       try:
         bot.edit_message_text(inline_message_id = user_data['old'], text = '↓')
-      except:
-        pass
+      except Exception as e:
+        logger.info(repr(e))
     count = 2
     while 'imid' not in user_data and count != 0:
       sleep(1)
@@ -125,8 +126,8 @@ def rcvMessage(update, context):
     try:
       dbFuncs.updateSpecificMessage(user_data['list'], userid, user_data['imid'])
       dbFuncs.removeInlineMessage(user_data['imid'])
-    except:
-      pass #TODO
+    except Exception as e:
+      logger.info(repr(e))
   else:
     _ = getTranslation(userid)
     if 'list' not in user_data:
@@ -158,8 +159,8 @@ def editMessage(update, context):
   try:
     code = dbFuncs.editItems(message.text.split("\n"), message.from_user['id'], message.message_id)
     updateMessages(bot, code)
-  except:
-    pass #TODO
+  except Exception as e:
+    logger.info(repr(e))
 
 def updateMessages(bot, code):
   list = dbFuncs.getList(code)
