@@ -8,6 +8,7 @@ from pickle import (load as pload, dump as pdump)
 from ..errorCallback import contextCallback
 from . import dbFuncs
 from . import helpFuncs
+from .listclass import List
 import gettext
 import logging
 
@@ -24,6 +25,8 @@ workingDir = "/home/lunaresk/gitProjects/telegramBots/" + BOTTOKEN
 backupsDir = workingDir + "/temp"
 localeDir = workingDir + "/locales"
 
+activelists = []
+
 def start(update, context):
   message, args, bot, user_data = update.message, context.args, context.bot, context.user_data
   userid = message.from_user['id']
@@ -36,7 +39,7 @@ def start(update, context):
       if args[0] == "new":
         return new(update, context)
       message.reply_text(_("invalidargs"))
-    elif not dbFuncs.isAvailable(args[0]):
+    elif not dbFuncs.codeInDB(args[0]):
       message.reply_text(_("notexisting"))
     elif not dbFuncs.isCoworker(args[0], userid):
       if dbFuncs.isOwner(args[0], userid):
@@ -80,22 +83,34 @@ def new(update, context):
 
 def setName(update, context):
   message, user_data = update.message, context.user_data
-  if len(message.text) > 64:
-    message.reply_text("The title is too long. Please choose a title with less than 64 characters.")
+#>>>>>>>>New
+  try:
+    newList = List.new(message.text)
+  except OverflowError as error:
+    message.reply_text(str(error))
+    return SETNAME
+  except NameError as error:
+    message.reply_text(str(error))
+    return ConversationHandler.END
+  user_data['list'], user_data['current'] = code, message.reply_text(str(newList), parse_mode="Markdown", disable_web_page_preview = True, reply_markup = createKeyboard(code, userid)).message_id
+#########TODO Finish new
+  if len(message.text) > 100:
+    message.reply_text(_("nametoolong"))
     return SETNAME
   userid = message.from_user['id']
   _ = getTranslation(userid)
   for i in range(10):
     code = helpFuncs.id_generator()
-    if not dbFuncs.isAvailable(code):
+    if not dbFuncs.codeInDB(code):
       break
-  if dbFuncs.isAvailable(code):
+  if dbFuncs.codeInDB(code):
     message.reply_text(_("notcreated"))
     return ConversationHandler.END
   dbFuncs.insertList(code, message.text, userid, message.from_user['first_name'])
   user_data['list'], user_data['current'] = code, message.reply_text(listText(code), parse_mode="Markdown", disable_web_page_preview = True, reply_markup = createKeyboard(code, userid)).message_id
   dbFuncs.updateOwner(code, user_data['current'])
   return ConversationHandler.END
+#<<<<<<<<Old
 
 def blankCode(update, context):
   context.args = [update.message.text[1:]]

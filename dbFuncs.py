@@ -222,7 +222,7 @@ def getAdminTerminal(code):
     cur.execute("SELECT * FROM AdminTerminals WHERE List = %s;", (code,))
     return cur.fetchone()
 
-def updateItem(id):
+def updateItem(id, done = False):
   with getConn(dblogin) as conn:
     cur = conn.cursor()
     cur.execute("UPDATE Items SET Done = NOT Done WHERE Id = %s;", (id,))
@@ -404,7 +404,7 @@ def sortList(code, sorting):
       cur.execute("UPDATE Items SET Id = %s WHERE Id = %s;", (item[0], -newSort.pop(0)))
     conn.commit()
 
-def isAvailable(code):
+def codeInDB(code):
   with getConn(dblogin) as conn:
     cur = conn.cursor()
     cur.execute("SELECT Code FROM Lists WHERE Code = %s;", (code,))
