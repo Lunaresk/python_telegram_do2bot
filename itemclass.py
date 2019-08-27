@@ -5,10 +5,12 @@ class Item:
     self.id = id
     self.name = name
     self.done = done
+    self.subitems = []
     subItems = []
     if not sub:
       subItems = getSubItems(id)
-    if len(subItems) > 0:
-    self.subitems = []
-      for subItem in subItems:
-        self.subitems.append(Item())
+    for subItem in subItems:
+      self.subitems.append(Item(subItem[0], subItem[2], subItem[3], True))
+
+  def __str__(self):
+    return self.name
