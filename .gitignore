@@ -110,7 +110,7 @@ userdata
 temp/
 
 # linux things
-.swp
+*.swp
 
 #encryption things
 cryptfuncs.py

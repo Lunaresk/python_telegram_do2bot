@@ -3,5 +3,5 @@ class User:
     self.id = id
     self.name = name
 
-  def linkedString(self) -> str:
+  def __str__(self) -> str:
     return "[{0}](tg://user?id={1})".format(self.name, self.id)
