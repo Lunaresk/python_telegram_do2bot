@@ -20,7 +20,7 @@ ListFooter = {"Check": 'c', "Options": 'o', "Remove": 'r', "Exit": 'e', "CheckSu
 OptionsOrder = ["{0}", "✅⬆", "✅⬇", "↩"]
 Options = {OptionsOrder[0]: "open", OptionsOrder[1]: "sortUp", OptionsOrder[2]: "sortDn", OptionsOrder[3]: "back"}
 BOTTOKEN = 'do2bot'
-workingDir = "/home/shiro/gitProjects/telegramBots/" + BOTTOKEN
+workingDir = "/home/lunaresk/gitProjects/telegramBots/" + BOTTOKEN
 backupsDir = workingDir + "/temp"
 localeDir = workingDir + "/locales"
 
@@ -79,6 +79,9 @@ def new(update, context):
 
 def setName(update, context):
   message, user_data = update.message, context.user_data
+  if len(message.text) > 64:
+    message.reply_text("The title is too long. Please choose a title with less than 64 characters.")
+    return SETNAME
   userid = message.from_user['id']
   _ = getTranslation(userid)
   for i in range(10):
