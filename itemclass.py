@@ -1,8 +1,10 @@
-from .dbFuncs import (getSubItems, updateItem)
+from .dbFuncs import (getSubItems, insertSubItem, insertItem, updateItem, updateSubItem)
+from functools import total_ordering
 from sys import getsizeof
 
+@total_ordering
 class Item:
-  def __init__(self, id: int, name: str, done: bool, sub: bool = False):
+  def __init__(self, id: int, name: str, done: bool = False, sub: bool = False):
     self.id = id
     self.name = name
     self.done = done
@@ -14,8 +16,18 @@ class Item:
     for subItem in subItems:
       self.subitems.append(Item(subItem[0], subItem[2], subItem[3], True))
 
-  def __str__(self):
-    return self.name
+  def __eq__(self, other):
+    if type(other) == int:
+      return other == self.id
+    return (type(self) == type(other) and self.issub == other.issub and self.id == other.id)
+
+  def __iter__(self):
+    return ItemIterator(self)
+
+  def __lt__(self, other):
+    if type(self) != type(other):
+      raise TypeError("Type mismatch")
+    return self.id < other.id
 
   def __sizeof__(self):
     total = getsizeof(self.id) + getsizeof(self.name) + getsizeof(self.done) + getsizeof(self.issub)
@@ -23,8 +35,44 @@ class Item:
       total += getsizeof(subitem)
     return total
 
+  def __str__(self):
+    return self.name
+
+  def new(code, itemname, fromuser, message, line):
+    return Item(insertItem(code, itemname[:255], fromuser, message, line), itemname, False)
+
+  def newSub(self, itemname, fromuser, message, line):
+    self.subItems.append(Item(insertSubItem(self.id, itemname[:255], fromuser, message, line), itemname, False, True))
+
   def toggle(self):
     self.done = not self.done
-    for subitem in self.subitems:
-      subitem.done = self.done
-    updateItem(self.id, self.done)
+    if self.issub:
+      updateSubItem(self.id, self.done)
+    else:
+      for subitem in self.subitems:
+        subitem.done = self.done
+      updateItem(self.id, self.done)
+
+class ItemIterator:
+  def __init__(self, _item):
+    self._item = _item
+    self._index = 0
+
+  def __next__(self):
+    if self._index == 0:
+      temp = self._item.name
+    elif self._index == 1:
+      temp = self._item.done
+    elif self._index == 2:
+      if self._item.issub:
+        raise StopIteration
+      if self._item.subitems:
+        temp = []
+        for subitem in self._item.subitems:
+          temp.append(list(subitem))
+      else:
+        raise StopIteration
+    else:
+      raise StopIteration
+    self._index += 1
+    return temp

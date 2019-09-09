@@ -1,11 +1,11 @@
 from sys import getsizeof
 from .itemclass import Item
 from .userclass import User
-from .dbFuncs import (getList, getItems, getCoworkers, codeInDB, insertList)
+from .dbFuncs import (codeInDB, getList, getItems, getCoworkers, getCoworkerMessage, getCoworkerMessages, getInlineMessages as dbgetInlineMessages, getOwnerMessage, insertCoworker, insertList, removeCoworker, removeItems, removeList)
 from .helpFuncs import id_generator
 
 class List:
-  def __init__(self, id = "D2AwdfuybG"):
+  def __init__(self, id):
     listdetails = getList(id)
     if listdetails:
       self.id = listdetails[0]
@@ -19,8 +19,18 @@ class List:
       items = getItems(self.id)
       for item in items:
         self.items.append(Item(item[0], item[2], item[3]))
+    else:
+      raise KeyError(_("notexisting"))
 
-  def __str__(self) -> str:
+  def __eq__(self, other):
+    if type(other) == str:
+      return other == self.id
+    return (type(self) == type(other) and self.id == other.id)
+
+  def __iter__(self):
+    return ListIterator(self)
+
+  def __repr__(self) -> str:
     text = u"📋 {0}, 🔗[/{1}](https://telegram.me/do2bot?start={1}), 👥 {2}".format(self.name, self.id, str(self.owner))
     for coworker in self.coworkers:
       text += ", " + str(coworker)
@@ -33,6 +43,62 @@ class List:
     for item in self.items:
       total += getsizeof(item)
     return total
+
+  def __str__(self) -> str:
+    text = u"📋 {0}, 🔗/{1}, 👥 {2}".format(self.name, self.id, str(self.owner))
+    for coworker in self.coworkers:
+      text += ", " + str(coworker)
+    return text
+
+  def addCoworker(self, coworker, coname, msgid):
+    self.coworkers.append(User(coworker, coname))
+    insertCoworker(self.id, coworker, coname, msgid)
+
+  def addItems(self, items, fromuser, message, line = 0):
+    for item in items:
+      if len(self.items) + sum([len(x.subitems) for x in self.items]) < 20:
+        self.items.append(Item.new(self.id, item, fromuser, message, line))
+        line += 1
+      else:
+        raise StopIteration("Too many items")
+
+  def addSubItems(self, topitem, items, fromuser, message, line = 0):
+    itemindex = self.items.index(topitem)
+    for item in items:
+      if len(self.items) + len([x for x in self.items.subitems]) < 20:
+        self.items[itemindex].newSub(item, fromuser, message, line)
+        line += 1
+      else:
+        raise StopIteration("Too many items")
+
+  def deleteCoworker(self, id):
+    try:
+      place = self.coworkers.index(id)
+    except ValueError as error:
+      return False
+    coworker = self.coworkers.pop(place)
+    removeCoworker(self.id, coworker.id)
+
+  def deleteDones(self):
+    for place, item in enumerate(self.items):
+      if item.done:
+        self.items.pop(place)
+    removeItems(self.id)
+
+  def deleteList(self):
+    removeList(self.id)
+
+  def getMessage(self):
+    return getOwnerMessage(self.id)[0]
+
+  def getCoMessage(self, id):
+    return getCoworkerMessage(self.id, id)
+
+  def getCoMessages(self):
+    return getCoworkerMessages(self.id)
+
+  def getInlineMessages(self):
+    return dbgetInlineMessages(self.id)
 
   def new(name: str, owner: int, ownerName: str):
     """Creates a new list and stores the details in the database.
@@ -47,6 +113,7 @@ class List:
     if len(name) > 100:
       raise OverflowError(_("nametoolong"))
     for i in range(10):
+
       code = id_generator()
       if not codeInDB(code):
         break
@@ -55,5 +122,43 @@ class List:
     insertList(code, name, owner, ownerName)
     return List(code)
 
-  def upload(self):
-    pass #TODO
+  def toggleItem(self, id):
+    try:
+      place = self.items.index(id)
+    except ValueError as error:
+      return False
+    self.items[place].toggle()
+    return True
+
+  def toggleSubItem(self, id):
+    for place, value in enumerate(self.items):
+      if id in value.subitems:
+        break
+    try:
+      subplace = self.items.index(id)
+    except ValueError as error:
+      return False
+    self.items[place].subitems[subplace].toggle()
+    return True
+
+
+class ListIterator: #dontfuckit
+  def __init__(self, _list):
+    self._list = _list
+    self._index = 0
+
+  def __next__(self):
+    if self._index == 0:
+      temp = self._list.name
+    elif self._index == 1:
+      temp = self._list.owner.id
+    elif self._index == 2:
+      temp = self._list.owner.name
+    elif self._index == 3:
+      temp = []
+      for item in self._list.items:
+        temp.append(list(item))
+    else:
+      raise StopIteration
+    self._index += 1
+    return temp

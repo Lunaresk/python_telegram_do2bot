@@ -35,18 +35,22 @@ def insertItem(code, item, fromuser = -1, message = -1, line = 0):
     cur.execute("SELECT * FROM Subitems WHERE TopItem in (SELECT Id FROM Items WHERE List = %s);", (code,))
     templen += len(cur.fetchall())
     if templen < 20:
-      cur.execute("INSERT INTO Items(List, Item, FromUser, MessageID, Line) VALUES(%s, %s, %s, %s, %s);", (code, item, fromuser, message, line))
+      cur.execute("INSERT INTO Items(List, Item, FromUser, MessageID, Line) VALUES(%s, %s, %s, %s, %s) RETURNING Id;", (code, item, fromuser, message, line))
       conn.commit()
-      return True
+      return cur.fetchone()
     return False
 
 def insertItems(code, items, fromuser = -1, message = -1, line = 0):
+  templist = []
   for item in items:
-    if insertItem(code, item, fromuser, message, line):
+    temp = insertItem(code, item, fromuser, message, line)
+    if temp:
       line += 1
+      templist.append(temp)
     else:
-      return False
-  return True
+      templist.append(False)
+      break
+  return templist
 
 #TODO rewrite for nested lists
 #def insertItems(code, items, fromuser = -1, message = -1, line = 0):
@@ -230,7 +234,7 @@ def updateItem(id, done = False):
       cur.execute("UPDATE Subitems SET Done = (SELECT Done FROM Items WHERE Id = %s) WHERE TopItem = %s", (id, id))
     conn.commit()
 
-def updateSubItem(id):
+def updateSubItem(id, done = False):
   with getConn(dblogin) as conn:
     cur = conn.cursor()
     cur.execute("UPDATE Subitems SET Done = NOT Done WHERE Id = %s;", (id,))
@@ -335,6 +339,18 @@ def getOwnerMessage(code):
     cur = conn.cursor()
     cur.execute("SELECT Message FROM Lists WHERE Code = %s;", (code,))
     return cur.fetchone()
+
+def getCoworkerMessage(code, coworker):
+  with getConn(dblogin) as conn:
+    cur = conn.cursor()
+    cur.execute("SELECT Message FROM Coworkers WHERE List = %s AND Worker = %s;", (code, coworker))
+    return cur.fetchone()
+
+def getCoworkerMessages(code):
+  with getConn(dblogin) as conn:
+    cur = conn.cursor()
+    cur.execute("SELECT Worker, Message FROM Coworkers WHERE List = %s;", (code,))
+    return cur.fetchall()
 
 def getItem(id):
   with getConn(dblogin) as conn:

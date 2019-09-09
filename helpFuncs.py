@@ -12,6 +12,7 @@ def isInt(tester):
     return False
 
 def getHelpText(choice, _):
+  texts = ["backup", "credits", "limitations", "new", "permission", "settings", "share", "sublist", "support"]
   if choice == "":
     return _("help")
   elif choice == "backup":
@@ -34,7 +35,7 @@ def getHelpText(choice, _):
     return _("helpsupport")
   else:
     text = _("helpcommands1")
-    for i in texts.keys():
+    for i in texts:
       text += "\n{0}".format(i)
     text += _("helpcommands2")
   return text
