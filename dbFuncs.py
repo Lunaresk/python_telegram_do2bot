@@ -1,10 +1,22 @@
-from ..bottoken import getConn
+from json import load as jload
+from psycopg2 import connect as psyconn
 from .helpFuncs import rearrangeList as hFRearrange
 
-dblogin = 'do2bot'
+dblogin = []
+BOTTOKEN = "do2bot"
+tokenDir = "/home/lunaresk/gitProjects/telegramBots/"
+tokenFile = "bottoken.json"
+
+with open(tokendir+tokenfile, "r") as file:
+  temp = jload(file)
+dblogin.extend(temp["psyconn"][BOTTOKEN])
+del(temp)
+
+def getConn():
+  return psyconn(host=dblogin[0], database=dblogin[1], user=dblogin[2], password=dblogin[3])
 
 def initDB():
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("CREATE TABLE IF NOT EXISTS Users(TId BIGINT PRIMARY KEY NOT NULL, Lang CHAR(2) NOT NULL DEFAULT 'en', Open BOOLEAN NOT NULL DEFAULT False);")
     cur.execute("CREATE TABLE IF NOT EXISTS AdminTerminals(List TEXT PRIMARY KEY NOT NULL REFERENCES Lists(Code));")
@@ -16,19 +28,19 @@ def initDB():
     conn.commit()
 
 def insertUser(tid, lang = 'en'):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("INSERT INTO Users(Tid, Lang) VALUES(%s, %s);", (tid, lang))
     conn.commit()
 
 def insertList(code, title, owner, name):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("INSERT INTO Lists(Code, Title, Owner, Name) VALUES(%s, %s, %s, %s);", (code, title, owner, name))
     conn.commit()
 
 def insertItem(code, item, fromuser = -1, message = -1, line = 0):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Items WHERE List = %s;", (code,))
     templen = len(cur.fetchall())
@@ -66,7 +78,7 @@ def insertItems(code, items, fromuser = -1, message = -1, line = 0):
 #    line += 1
 
 def insertSubItem(topitem, item, fromuser = -1, message = -1, line = 0):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("INSERT INTO Subitems(TopItem, Item, FromUser, MessageID, Line) VALUES(%s, %s, %s, %s, %s);", (topitem, item, fromuser, message, line))
     conn.commit()
@@ -82,25 +94,25 @@ def insertSubItems(repliedmsg, items, fromuser = -1, message = -1, line = 0):
   return True
 
 def insertCoworker(code, user, name, message):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("INSERT INTO Coworkers(List, Worker, Name, Message) VALUES(%s, %s, %s, %s);", (code, user, name, str(message)))
     conn.commit()
 
 def insertInlineMessage(code, message):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("INSERT INTO InlineMessages(List, InlineID) VALUES(%s, %s);", (code, str(message)))
     conn.commit()
 
 def updateOwner(code, message):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("UPDATE Lists SET Message = %s WHERE Code = %s;", (str(message), code))
     conn.commit()
 
 def editUser(tid, lang):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("UPDATE Users SET Lang = %s WHERE Tid = %s;", (lang, tid))
     conn.commit()
@@ -108,7 +120,7 @@ def editUser(tid, lang):
 def editItem(item, fromuser, msgID, line = 0):
   if not getItemByEdit(fromuser, msgID, line):
     return False
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("UPDATE Items SET Item = %s WHERE FromUser = %s AND MessageID = %s AND Line = %s;", (item, fromuser, msgID, line))
     conn.commit()
@@ -117,20 +129,20 @@ def editItem(item, fromuser, msgID, line = 0):
 def editSubItem(item, fromuser, msgID, line = 0):
   if not getSubItemByEdit(fromuser, msgID, line):
     return False
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("UPDATE Subitems SET Item = %s WHERE FromUser = %s AND MessageID = %s AND Line = %s;", (item, fromuser, msgID, line))
     conn.commit()
   return True
 
 def getItemByEdit(fromuser, msgID, line):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Items WHERE FromUser = %s AND MessageID = %s AND Line = %s;", (fromuser, msgID, line))
     return cur.fetchone()
 
 def getSubItemByEdit(fromuser, msgID, line):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Subitems WHERE FromUser = %s AND MessageID = %s AND Line = %s;", (fromuser, msgID, line))
     return cur.fetchone()
@@ -168,7 +180,7 @@ def editItems(items, fromuser, msgID, line = 0):
   return code
 
 def getCodeByEdit(fromuser, msgID):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT List FROM Items WHERE FromUser = %s AND MessageID = %s;", (fromuser, msgID))
     temp = cur.fetchone()
@@ -178,7 +190,7 @@ def getCodeByEdit(fromuser, msgID):
     return ""
 
 def getTopItemByEdit(fromuser, msgID):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT TopItem FROM Subitems WHERE FromUser = %s AND MessageID = %s;", (fromuser, msgID))
     temp = cur.fetchone()
@@ -188,31 +200,31 @@ def getTopItemByEdit(fromuser, msgID):
     return 0
 
 def getItemsByEdit(fromuser, msgID):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Items WHERE FromUser = %s AND MessageID = %s;", (fromuser, msgID))
     return cur.fetchall()
 
 def removeExcessItems(fromuser, msgID, line):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("DELETE FROM Items WHERE FromUser = %s AND MessageID = %s AND Line >= %s;", (fromuser, msgID, line))
     conn.commit()
 
 def removeExcessSubItems(fromuser, msgID, line):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("DELETE FROM Subitems WHERE FromUser = %s AND MessageID = %s AND Line >= %s;", (fromuser, msgID, line))
     conn.commit()
 
 def toggleListOpen(code, state = False):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("UPDATE Lists SET Open = %s WHERE Code = %s;", (state, code))
     conn.commit()
 
 def toggleAdminKeyboard(code, state = False):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     if state:
       cur.execute("INSERT INTO AdminTerminals(List) VALUES(%s);", (code,))
@@ -221,13 +233,13 @@ def toggleAdminKeyboard(code, state = False):
     conn.commit()
 
 def getAdminTerminal(code):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM AdminTerminals WHERE List = %s;", (code,))
     return cur.fetchone()
 
 def updateItem(id, done = False):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("UPDATE Items SET Done = NOT Done WHERE Id = %s;", (id,))
     if hasSubItems(id):
@@ -235,7 +247,7 @@ def updateItem(id, done = False):
     conn.commit()
 
 def updateSubItem(id, done = False):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("UPDATE Subitems SET Done = NOT Done WHERE Id = %s;", (id,))
     cur.execute("SELECT * FROM Subitems WHERE Done = False AND TopItem = (SELECT TopItem FROM Subitems WHERE Id = %s);", (id,))
@@ -246,7 +258,7 @@ def updateSubItem(id, done = False):
     conn.commit()
 
 def updateCoworker(code, user, message):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("UPDATE Coworkers SET Message = %s WHERE List = %s AND Worker = %s;", (str(message), code, user))
     conn.commit()
@@ -258,7 +270,7 @@ def updateSpecificMessage(code, user, message):
     updateOwner(code, message)
 
 def removeList(code):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("DELETE FROM Subitems WHERE TopItem IN (SELECT Id FROM Items WHERE List = %s);", (code,))
     cur.execute("DELETE FROM Items WHERE List = %s;", (code,))
@@ -268,26 +280,26 @@ def removeList(code):
     conn.commit()
 
 def removeCoworker(code, user):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("DELETE FROM Coworkers WHERE List = %s AND Worker = %s;", (code, user))
     conn.commit()
 
 def removeItems(id):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("DELETE FROM Subitems WHERE TopItem in (SELECT Id FROM Items WHERE List = %s AND Done = True);", (id,))
     cur.execute("DELETE FROM Items WHERE List = %s AND Done = True;", (id,))
     conn.commit()
 
 def removeInlineMessage(inline_id):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("DELETE FROM InlineMessages WHERE InlineId = %s;", (inline_id,))
     conn.commit()
 
 def getUser(tid):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Users WHERE Tid = %s;", (tid,))
     temp = cur.fetchone()
@@ -297,19 +309,19 @@ def getUser(tid):
   return (tid, 'en')
 
 def getUsers():
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Users;")
     return cur.fetchall()
 
 def getList(code):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Lists WHERE Code = %s;", (code,))
     return cur.fetchone()
 
 def getRecentList(user):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Lists WHERE Owner = %s ORDER BY Message DESC;", (user,))
     list1 = cur.fetchone()
@@ -322,74 +334,74 @@ def getRecentList(user):
     return(list1 if list1[4] > list2[3] else list2)
 
 def getOwnLists(user):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("""SELECT * FROM Lists WHERE Owner = %s
     OR Code IN (SELECT Code FROM Coworkers WHERE Worker = %s);""", (user, user))
     return cur.fetchall()
 
 def getOwnedLists(user):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Lists WHERE Owner = %s;", (user,))
     return cur.fetchall()
 
 def getOwnerMessage(code):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT Message FROM Lists WHERE Code = %s;", (code,))
     return cur.fetchone()
 
 def getCoworkerMessage(code, coworker):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT Message FROM Coworkers WHERE List = %s AND Worker = %s;", (code, coworker))
     return cur.fetchone()
 
 def getCoworkerMessages(code):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT Worker, Message FROM Coworkers WHERE List = %s;", (code,))
     return cur.fetchall()
 
 def getItem(id):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Items WHERE Id = %s;", (id,))
     return cur.fetchone()
 
 def getItems(code):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Items WHERE List = %s ORDER BY Id ASC;", (code,))
     return cur.fetchall()
 
 def getSubItem(id):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Subitems WHERE Id = %s;", (id,))
     return cur.fetchone()
 
 def getSubItems(topitem):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Subitems WHERE TopItem = %s ORDER BY Id ASC;", (topitem,))
     return cur.fetchall()
 
 def getCoworkers(code):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Coworkers WHERE List = %s;", (code,))
     return cur.fetchall()
 
 def getCoworkerMessage(code, user):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT Message FROM Coworkers WHERE List = %s AND Worker = %s;", (code, user))
     return cur.fetchone()
 
 def getInlineMessages(code):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM InlineMessages WHERE List = %s;", (code,))
     return cur.fetchall()
@@ -398,7 +410,7 @@ def getSpecificMessage(code, user):
   return getCoworkerMessage(code, user) or getOwnerMessage(code)
 
 def getLikelyLists(pattern, user):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("""SELECT * FROM Lists WHERE
       Owner = %s AND Title LIKE %s
@@ -410,7 +422,7 @@ def getLikelyLists(pattern, user):
     return cur.fetchall()
 
 def sortList(code, sorting):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT * FROM Items WHERE List = %s ORDER BY ID;", (code,))
     items = cur.fetchall()
@@ -421,7 +433,7 @@ def sortList(code, sorting):
     conn.commit()
 
 def codeInDB(code):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT Code FROM Lists WHERE Code = %s;", (code,))
     if evaluateOne(cur.fetchone()) != None:
@@ -429,13 +441,13 @@ def codeInDB(code):
     return False
 
 def isOpen(code):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT Open FROM Lists WHERE Code = %s;", (code,))
     return cur.fetchone()[0]
 
 def isOwner(code, user):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT Code FROM Lists WHERE Code = %s AND Owner = %s;",(code, user))
     if cur.fetchone() == None:
@@ -443,7 +455,7 @@ def isOwner(code, user):
     return True
 
 def isCoworker(code, user):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT List FROM Coworkers WHERE List = %s AND Worker = %s;",(code, user))
     if cur.fetchone() == None:
@@ -451,7 +463,7 @@ def isCoworker(code, user):
     return True
 
 def hasSubItems(topitem):
-  with getConn(dblogin) as conn:
+  with getConn() as conn:
     cur = conn.cursor()
     cur.execute("SELECT Id FROM Subitems WHERE TopItem = %s;", (topitem,))
     return cur.fetchone()

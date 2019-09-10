@@ -119,7 +119,7 @@ class List:
 
     Returns: A new object of type 'List'.
     """
-    if len(name) > 100:
+    if len(name) > 64:
       raise OverflowError(_("nametoolong"))
     accepted = False
     for i in range(10):

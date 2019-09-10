@@ -1,16 +1,19 @@
+import gettext
+import logging
+
+from json import (load as jload, dump as jdump)
+from pickle import (load as pload, dump as pdump)
 from telegram import (InlineKeyboardButton, InlineKeyboardMarkup, InlineQueryResult, InlineQueryResultArticle, InputTextMessageContent)
-from telegram.ext import (CommandHandler, MessageHandler, RegexHandler, CallbackQueryHandler, ConversationHandler, InlineQueryHandler, ChosenInlineResultHandler, Filters)
+from telegram.ext import (Updater, CommandHandler, MessageHandler, RegexHandler, CallbackQueryHandler, ConversationHandler, InlineQueryHandler, ChosenInlineResultHandler, Filters)
 from telegram.ext.dispatcher import run_async
 from telegram.error import BadRequest
 from time import sleep
-from json import (load as jload, dump as jdump)
-from pickle import (load as pload, dump as pdump)
-from ..errorCallback import contextCallback
+from threading import Thread
+
 from . import dbFuncs
 from . import helpFuncs
+from .errorCallback import contextCallback
 from .listclass import List
-import gettext
-import logging
 
 logging.basicConfig(format='%(asctime)s - %(name)s - Function[%(funcName)s] - Line[%(lineno)s] - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,6 +24,7 @@ ListFooter = {"Check": 'c', "Options": 'o', "Remove": 'r', "Exit": 'e', "CheckSu
 OptionsOrder = ["{0}", "✅⬆", "✅⬇", "↩"]
 Options = {OptionsOrder[0]: "open", OptionsOrder[1]: "sortUp", OptionsOrder[2]: "sortDn", OptionsOrder[3]: "back"}
 BOTTOKEN = 'do2bot'
+tokensDir = "/home/lunaresk/gitProjects/telegramBots/"
 workingDir = "/home/lunaresk/gitProjects/telegramBots/" + BOTTOKEN
 backupsDir = workingDir + "/temp"
 localeDir = workingDir + "/locales"
@@ -231,6 +235,7 @@ def updateMessages(bot, todolist, msgtext = ""):
 def backup(update, context):
   message, bot = update.message, context.bot
   userid = message.from_user['id']
+  logger.info("Backing up lists for {}".format(userid))
   ownlists = dbFuncs.getOwnedLists(userid)
   if not ownlists:
     _ = getTranslation(userid)
@@ -360,6 +365,7 @@ def inlineQuery(update, context):
   else:
     ownLists = dbFuncs.getLikelyLists("%{0}%".format(term), userid)
   resultList = []
+  threads = []
   for ownlist in ownLists:
     temp = List(ownlist[0])
     resultList.append(InlineQueryResultArticle(id = temp.id, title = temp.name, description = temp.id, thumb_url = "http://icons.iconarchive.com/icons/google/noto-emoji-objects/1024/62930-clipboard-icon.png", reply_markup = createKeyboard(temp, -1), input_message_content = InputTextMessageContent(message_text = str(temp) + " `{0}`".format(user_data['tester']), parse_mode = 'Markdown', disable_web_page_preview = False)))
@@ -537,5 +543,6 @@ def main(updater):
 
 
 if __name__ == '__main__':
-  from ..bottoken import getToken
-  main(getToken(BOTTOKEN))
+  with open(tokensDir + "bottoken.json", "r") as file:
+    tokens = jload(file)
+  main(Updater(tokens["bottoken"][BOTTOKEN]))
