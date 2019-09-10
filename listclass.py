@@ -1,26 +1,32 @@
 from sys import getsizeof
+from threading import Thread
 from .itemclass import Item
 from .userclass import User
 from .dbFuncs import (codeInDB, getList, getItems, getCoworkers, getCoworkerMessage, getCoworkerMessages, getInlineMessages as dbgetInlineMessages, getOwnerMessage, insertCoworker, insertList, removeCoworker, removeItems, removeList)
 from .helpFuncs import id_generator
 
 class List:
-  def __init__(self, id):
-    listdetails = getList(id)
-    if listdetails:
-      self.id = listdetails[0]
-      self.name = listdetails[1]
-      self.owner = User(listdetails[2], listdetails[3])
-      self.coworkers = []
-      self.items = []
-      coworkers = getCoworkers(self.id)
-      for coworker in coworkers:
-        self.coworkers.append(User(coworker[1], coworker[2]))
-      items = getItems(self.id)
-      for item in items:
-        self.items.append(Item(item[0], item[2], item[3]))
+  def __init__(self, id = "", name = "", owner = 0, ownername = ""):
+    self.coworkers = []
+    self.items = []
+    if name and owner and ownername:
+      self.id = id
+      self.name = name
+      self.owner = User(owner, ownername)
     else:
-      raise KeyError(_("notexisting"))
+      listdetails = getList(id)
+      if listdetails:
+        self.id = listdetails[0]
+        self.name = listdetails[1]
+        self.owner = User(listdetails[2], listdetails[3])
+        coworkers = getCoworkers(self.id)
+        for coworker in coworkers:
+          self.coworkers.append(User(coworker[1], coworker[2]))
+        items = getItems(self.id)
+        for item in items:
+          self.items.append(Item(item[0], item[2], item[3]))
+      else:
+        raise KeyError(_("notexisting"))
 
   def __eq__(self, other):
     if type(other) == str:
@@ -52,7 +58,8 @@ class List:
 
   def addCoworker(self, coworker, coname, msgid):
     self.coworkers.append(User(coworker, coname))
-    insertCoworker(self.id, coworker, coname, msgid)
+    dbfunc = Thread(target=insertCoworker, args=(self.id, coworker, coname, msgid))
+    dbfunc.start()
 
   def addItems(self, items, fromuser, message, line = 0):
     for item in items:
@@ -77,13 +84,15 @@ class List:
     except ValueError as error:
       return False
     coworker = self.coworkers.pop(place)
-    removeCoworker(self.id, coworker.id)
+    dbfunc = Thread(target=removeCoworker, args=(self.id, coworker.id))
+    dbfunc.start()
 
   def deleteDones(self):
     for place, item in enumerate(self.items):
       if item.done:
         self.items.pop(place)
-    removeItems(self.id)
+    dbfunc = Thread(target=removeItems, args=(self.id,))
+    dbfunc.start()
 
   def deleteList(self):
     removeList(self.id)
@@ -112,15 +121,17 @@ class List:
     """
     if len(name) > 100:
       raise OverflowError(_("nametoolong"))
+    accepted = False
     for i in range(10):
-
       code = id_generator()
       if not codeInDB(code):
+        accepted = True
         break
-    if codeInDB(code):
+    if not accepted:
       raise NameError(_("notcreated"))
-    insertList(code, name, owner, ownerName)
-    return List(code)
+    dbfunc = Thread(target=insertList, args=(code, name, owner, ownerName))
+    dbfunc.start()
+    return List(code, name, owner, ownerName)
 
   def toggleItem(self, id):
     try:

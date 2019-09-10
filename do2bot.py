@@ -103,7 +103,7 @@ def setName(update, context):
   except Exception as error:
     logger.warn(repr(error))
     return SETNAME
-  user_data['list'], user_data['current'] = newList.id, message.reply_text(str(newList), parse_mode="Markdown", disable_web_page_preview = True, reply_markup = createKeyboard(newList, newList.owner.id)).message_id #TODO rewrite createKeyboard to work with List.items array
+  user_data['list'], user_data['current'] = newList.id, message.reply_text(str(newList), parse_mode="Markdown", disable_web_page_preview = True, reply_markup = createKeyboard(newList, newList.owner.id)).message_id
   dbFuncs.updateOwner(newList.id, user_data['current'])
   return ConversationHandler.END
 
@@ -250,9 +250,11 @@ def restore(update, context):
 #>>>>>REWROTE
 def pushInline(update, context):
   query, bot, user_data = update.callback_query, context.bot, context.user_data
+  print(query.data)
   userid = query.from_user['id']
   _ = getTranslation(userid)
   action = query.data.split("_")
+  print(str(action))
   todolist = List(action[0])
   if not action[1] == ListFooter["Remove"]:
     user_data.pop('closing', None)

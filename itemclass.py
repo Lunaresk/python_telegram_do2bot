@@ -1,6 +1,7 @@
-from .dbFuncs import (getSubItems, insertSubItem, insertItem, updateItem, updateSubItem)
 from functools import total_ordering
 from sys import getsizeof
+from threading import Thread
+from .dbFuncs import (getSubItems, insertSubItem, insertItem, updateItem, updateSubItem)
 
 @total_ordering
 class Item:
@@ -39,19 +40,20 @@ class Item:
     return self.name
 
   def new(code, itemname, fromuser, message, line):
-    return Item(insertItem(code, itemname[:255], fromuser, message, line), itemname, False)
+    return Item(insertItem(code, itemname[:255], fromuser, message, line)[0], itemname, False)
 
   def newSub(self, itemname, fromuser, message, line):
-    self.subItems.append(Item(insertSubItem(self.id, itemname[:255], fromuser, message, line), itemname, False, True))
+    self.subItems.append(Item(insertSubItem(self.id, itemname[:255], fromuser, message, line)[0], itemname, False, True))
 
   def toggle(self):
     self.done = not self.done
     if self.issub:
-      updateSubItem(self.id, self.done)
+      dbfunc = Thread(target=updateSubItem, args=(self.id, self.done))
     else:
       for subitem in self.subitems:
         subitem.done = self.done
-      updateItem(self.id, self.done)
+      dbfunc = Thread(target=updateItem, args=(self.id, self.done))
+    dbfunc.start()
 
 class ItemIterator:
   def __init__(self, _item):
