@@ -7,7 +7,7 @@ BOTTOKEN = "do2bot"
 tokenDir = "/home/lunaresk/gitProjects/telegramBots/"
 tokenFile = "bottoken.json"
 
-with open(tokendir+tokenfile, "r") as file:
+with open(tokenDir+tokenFile, "r") as file:
   temp = jload(file)
 dblogin.extend(temp["psyconn"][BOTTOKEN])
 del(temp)
@@ -80,8 +80,10 @@ def insertItems(code, items, fromuser = -1, message = -1, line = 0):
 def insertSubItem(topitem, item, fromuser = -1, message = -1, line = 0):
   with getConn() as conn:
     cur = conn.cursor()
-    cur.execute("INSERT INTO Subitems(TopItem, Item, FromUser, MessageID, Line) VALUES(%s, %s, %s, %s, %s);", (topitem, item, fromuser, message, line))
+    cur.execute("INSERT INTO Subitems(TopItem, Item, FromUser, MessageID, Line) VALUES(%s, %s, %s, %s, %s) RETURNING Id;", (topitem, item, fromuser, message, line))
     conn.commit()
+    return cur.fetchone()
+  return False
 
 def insertSubItems(repliedmsg, items, fromuser = -1, message = -1, line = 0):
   temp = getItemsByEdit(fromuser, repliedmsg)
@@ -337,7 +339,7 @@ def getOwnLists(user):
   with getConn() as conn:
     cur = conn.cursor()
     cur.execute("""SELECT * FROM Lists WHERE Owner = %s
-    OR Code IN (SELECT Code FROM Coworkers WHERE Worker = %s);""", (user, user))
+    OR Code IN (SELECT List FROM Coworkers WHERE Worker = %s);""", (user, user))
     return cur.fetchall()
 
 def getOwnedLists(user):

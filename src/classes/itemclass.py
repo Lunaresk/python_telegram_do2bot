@@ -1,7 +1,8 @@
 from functools import total_ordering
 from sys import getsizeof
 from threading import Thread
-from .dbFuncs import (getSubItems, insertSubItem, insertItem, updateItem, updateSubItem)
+
+from ..dbFuncs import (getSubItems, insertSubItem, insertItem, updateItem, updateSubItem)
 
 @total_ordering
 class Item:
@@ -43,7 +44,7 @@ class Item:
     return Item(insertItem(code, itemname[:255], fromuser, message, line)[0], itemname, False)
 
   def newSub(self, itemname, fromuser, message, line):
-    self.subItems.append(Item(insertSubItem(self.id, itemname[:255], fromuser, message, line)[0], itemname, False, True))
+    self.subitems.append(Item(insertSubItem(self.id, itemname[:255], fromuser, message, line)[0], itemname, False, True))
 
   def toggle(self):
     self.done = not self.done

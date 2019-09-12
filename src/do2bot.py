@@ -2,18 +2,18 @@ import gettext
 import logging
 
 from json import (load as jload, dump as jdump)
+from multiprocessing import (Pool, cpu_count)
 from pickle import (load as pload, dump as pdump)
 from telegram import (InlineKeyboardButton, InlineKeyboardMarkup, InlineQueryResult, InlineQueryResultArticle, InputTextMessageContent)
 from telegram.ext import (Updater, CommandHandler, MessageHandler, RegexHandler, CallbackQueryHandler, ConversationHandler, InlineQueryHandler, ChosenInlineResultHandler, Filters)
 from telegram.ext.dispatcher import run_async
 from telegram.error import BadRequest
 from time import sleep
-from threading import Thread
 
 from . import dbFuncs
 from . import helpFuncs
 from .errorCallback import contextCallback
-from .listclass import List
+from .classes.listclass import List
 
 logging.basicConfig(format='%(asctime)s - %(name)s - Function[%(funcName)s] - Line[%(lineno)s] - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,9 +23,10 @@ SETTINGS = range(1)
 ListFooter = {"Check": 'c', "Options": 'o', "Remove": 'r', "Exit": 'e', "CheckSub": 's'}
 OptionsOrder = ["{0}", "✅⬆", "✅⬇", "↩"]
 Options = {OptionsOrder[0]: "open", OptionsOrder[1]: "sortUp", OptionsOrder[2]: "sortDn", OptionsOrder[3]: "back"}
-BOTTOKEN = 'do2bot'
-tokensDir = "/home/lunaresk/gitProjects/telegramBots/"
-workingDir = "/home/lunaresk/gitProjects/telegramBots/" + BOTTOKEN
+BOTTOKEN = 'lunaalphabot'
+tokenDir = "/home/lunaresk/gitProjects/telegramBots/"
+tokenFile = "bottoken.json"
+workingDir = "/home/lunaresk/gitProjects/telegramBots/do2bot"
 backupsDir = workingDir + "/temp"
 localeDir = workingDir + "/locales"
 
@@ -39,7 +40,7 @@ def start(update, context):
   _ = getTranslation(userid)
   if not args:
     message.reply_text(_("welcome"), parse_mode = 'Markdown',
-      reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text = _("try"), switch_inline_query_current_chat = "")]]))
+      reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text = _("try"), switch_inline_query = " ")]]))
   else:
     if len(args[0]) != 10:
       if args[0] == "new":
@@ -173,7 +174,7 @@ def rcvReply(update, context):
     return ConversationHandler.END
   corelist = List(items_from_reply[0][1])
   items = message.text.split("\n")
-  if not userid in corelist.coworkers or not userid == corelist.owner:
+  if not userid in corelist.coworkers and not userid == corelist.owner:
     message.reply_text(_("notallowed"))
     return ConversationHandler.END
   try:
@@ -366,10 +367,20 @@ def inlineQuery(update, context):
     ownLists = dbFuncs.getLikelyLists("%{0}%".format(term), userid)
   resultList = []
   threads = []
-  for ownlist in ownLists:
-    temp = List(ownlist[0])
-    resultList.append(InlineQueryResultArticle(id = temp.id, title = temp.name, description = temp.id, thumb_url = "http://icons.iconarchive.com/icons/google/noto-emoji-objects/1024/62930-clipboard-icon.png", reply_markup = createKeyboard(temp, -1), input_message_content = InputTextMessageContent(message_text = str(temp) + " `{0}`".format(user_data['tester']), parse_mode = 'Markdown', disable_web_page_preview = False)))
+  listcodes = [x[0] for x in ownLists]
+  with Pool(processes = cpu_count()) as pool:
+    listobjects = pool.map(List, listcodes)
+  logger.info("Created {} Lists for Inline Query".format(len(listobjects)))
+  for temp in listobjects:
+    resultList.append(InlineQueryResultArticle(id = temp.id, title = temp.name, description = temp.id,
+                                               thumb_url = "http://icons.iconarchive.com/icons/google/noto-emoji-objects/1024/62930-clipboard-icon.png",
+                                               reply_markup = createKeyboard(temp, -1),
+                                               input_message_content = InputTextMessageContent(message_text = repr(temp) + " `{0}`".format(user_data['tester']),
+                                                                                               parse_mode = 'Markdown',
+                                                                                               disable_web_page_preview = False)))
+  logger.info("Appended to result lists. Answering query")
   query.answer(results = resultList, cache_time = 0, switch_pm_text = _("newlist"), switch_pm_parameter = "new")
+  logger.info("Query answered")
 
 @run_async
 def chosenQuery(update, context):
@@ -540,9 +551,3 @@ def main(updater):
       pdump(listHandler.conversations, file)
   except Exception as e:
     logger.warning(repr(e))
-
-
-if __name__ == '__main__':
-  with open(tokensDir + "bottoken.json", "r") as file:
-    tokens = jload(file)
-  main(Updater(tokens["bottoken"][BOTTOKEN]))

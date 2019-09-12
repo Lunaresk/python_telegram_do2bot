@@ -1,9 +1,10 @@
 from sys import getsizeof
 from threading import Thread
+
+from ..dbFuncs import (codeInDB, getList, getItems, getCoworkers, getCoworkerMessage, getCoworkerMessages, getInlineMessages as dbgetInlineMessages, getOwnerMessage, insertCoworker, insertList, removeCoworker, removeItems, removeList)
+from ..helpFuncs import id_generator
 from .itemclass import Item
 from .userclass import User
-from .dbFuncs import (codeInDB, getList, getItems, getCoworkers, getCoworkerMessage, getCoworkerMessages, getInlineMessages as dbgetInlineMessages, getOwnerMessage, insertCoworker, insertList, removeCoworker, removeItems, removeList)
-from .helpFuncs import id_generator
 
 class List:
   def __init__(self, id = "", name = "", owner = 0, ownername = ""):
@@ -26,7 +27,7 @@ class List:
         for item in items:
           self.items.append(Item(item[0], item[2], item[3]))
       else:
-        raise KeyError(_("notexisting"))
+        raise KeyError(("notexisting"))
 
   def __eq__(self, other):
     if type(other) == str:
@@ -72,7 +73,7 @@ class List:
   def addSubItems(self, topitem, items, fromuser, message, line = 0):
     itemindex = self.items.index(topitem)
     for item in items:
-      if len(self.items) + len([x for x in self.items.subitems]) < 20:
+      if len(self.items) + sum([len(x.subitems) for x in self.items]) < 20:
         self.items[itemindex].newSub(item, fromuser, message, line)
         line += 1
       else:
@@ -120,7 +121,7 @@ class List:
     Returns: A new object of type 'List'.
     """
     if len(name) > 64:
-      raise OverflowError(_("nametoolong"))
+      raise OverflowError(("nametoolong"))
     accepted = False
     for i in range(10):
       code = id_generator()
@@ -128,7 +129,7 @@ class List:
         accepted = True
         break
     if not accepted:
-      raise NameError(_("notcreated"))
+      raise NameError(("notcreated"))
     dbfunc = Thread(target=insertList, args=(code, name, owner, ownerName))
     dbfunc.start()
     return List(code, name, owner, ownerName)
@@ -146,7 +147,7 @@ class List:
       if id in value.subitems:
         break
     try:
-      subplace = self.items.index(id)
+      subplace = self.items[place].subitems.index(id)
     except ValueError as error:
       return False
     self.items[place].subitems[subplace].toggle()
