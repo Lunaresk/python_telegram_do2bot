@@ -2,7 +2,7 @@ from json import load as jload
 from telegram.ext import Updater
 from src.do2bot import main
 
-BOTTOKEN = "lunaalphabot"
+BOTTOKEN = "do2bot"
 tokenDir = "/home/lunaresk/gitProjects/telegramBots/"
 tokenFile = "bottoken.json"
 
