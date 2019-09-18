@@ -89,9 +89,9 @@ class List:
     dbfunc.start()
 
   def deleteDones(self):
-    for place, item in enumerate(self.items):
+    for item in self.items[:]:
       if item.done:
-        self.items.pop(place)
+        self.items.pop(self.items.index(item))
     dbfunc = Thread(target=removeItems, args=(self.id,))
     dbfunc.start()
 
