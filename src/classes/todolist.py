@@ -6,7 +6,7 @@ from ..helpFuncs import id_generator
 from .itemclass import Item
 from .userclass import User
 
-class List:
+class Todolist:
   def __init__(self, id = "", name = "", owner = 0, ownername = ""):
     self.coworkers = []
     self.items = []
@@ -132,7 +132,7 @@ class List:
       raise NameError(("notcreated"))
     dbfunc = Thread(target=insertList, args=(code, name, owner, ownerName))
     dbfunc.start()
-    return List(code, name, owner, ownerName)
+    return Todolist(code, name, owner, ownerName)
 
   def toggleItem(self, id):
     try:
