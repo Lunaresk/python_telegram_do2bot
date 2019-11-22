@@ -2,19 +2,16 @@ from json import load as jload
 from psycopg2 import connect as psyconn
 from .helpFuncs import rearrangeList as hFRearrange
 
-dblogin = []
 BOTTOKEN = "do2bot"
 tokenDir = "/home/lunaresk/gitProjects/telegramBots/"
 tokenFile = "bottoken.json"
 
-with open(tokenDir+tokenFile, "r") as file:
-  temp = jload(file)
-dblogin.extend(temp["psyconn"][BOTTOKEN])
-del(temp)
-
 conn = None
 
 def getConn():
+  with open(tokenDir+tokenFile, "r") as file:
+    temp = jload(file)
+  dblogin = temp["psyconn"][BOTTOKEN]
   global conn
   conn = psyconn(host=dblogin[0], database=dblogin[1], user=dblogin[2], password=dblogin[3])
 

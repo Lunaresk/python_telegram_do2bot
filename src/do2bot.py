@@ -20,13 +20,14 @@ logging.basicConfig(format='%(asctime)s - %(name)s - Function[%(funcName)s] - Li
 logger = logging.getLogger(__name__)
 
 SETNAME = range(1)
-SETTINGS = range(1)
+SETTINGS, LANGUAGE, NOTIFICATION = range(3)
 ListFooter = Keyboard.ListFooter
 OptionsOrder = Keyboard.OptionsOrder
 Options = Keyboard.Options
 workingDir = "/home/lunaresk/gitProjects/telegramBots/do2bot"
 backupsDir = workingDir + "/temp"
 localeDir = workingDir + "/locales"
+patterns = Keyboard.patterns
 
 activelists = [] #For future speed boost
 
@@ -42,6 +43,7 @@ def start(update, context):
       if args[0] == "new":
         return new(update, context)
       message.reply_text(_("invalidargs"))
+      return ConversationHandler.END
     try:
       todolist = Todolist(args[0])
     except KeyError as error:
@@ -79,10 +81,38 @@ def help(update, context):
     args = [""]
   message.reply_text(helpFuncs.getHelpText(args[0], getTranslation(userid, "help")), parse_mode = "Markdown")
 
+def settings(update, context): #TODO Continue Settings
+  message = update.message
+  _ = getTranslation(message.from_user['id'])
+  message.reply_text(_("settings"), reply_markup = Keyboard.settingsKeyboard())
+  return SETTINGS
+
+def settings_main(update, context):
+  query, settings = update.callback_query, Keyboard.Settings
+  action = getAction(query.data)[0]
+  if action == settings['Language']:
+    query.edit_message_text("Language Selection", reply_markup = Keyboard.languageKeyboard())
+    query.answer()
+    return LANGUAGE
+  elif action == settings['Notifications']:
+    query.answer("Not implemented yet. Stay tuned.")
+  return SETTINGS
+
+def settings_language(update, context):
+  query, bot = update.callback_query, context.bot
+  action = getAction(query.data)[0]
+  userid = query.from_user['id']
+  if not action == "back":
+    dbFuncs.editUser(userid, action) #TODO Finish this
+  query.edit_message_text(_("settings"), reply_markup = Keyboard.settingsKeyboard())
+  return SETTINGS
+
+def settings_notification(update, context):
+  pass #TODO
+
 def new(update, context):
   message = update.message
-  userid = message.from_user['id']
-  _ = getTranslation(userid)
+  _ = getTranslation(message.from_user['id'])
   message.reply_text(_("insertname"))
   return SETNAME
 
@@ -262,18 +292,23 @@ def backupSingle(bot, todolist):
 def restore(update, context):
   pass
 
+def getAction(querydata):
+  action = querydata.split("_")
+  action[0] = action[0].split(":")[1]
+  return action
+
 def pushInline(update, context):
   query, bot, user_data = update.callback_query, context.bot, context.user_data
   print(query.data)
   userid = query.from_user['id']
   _ = getTranslation(userid)
-  action = query.data.split("_")
-  print(str(action))
+  action = getAction(query.data)
+  logger.info(str(action))
   todolist = Todolist(action[0])
   if not action[1] == ListFooter["Remove"]:
     user_data.pop('closing', None)
   if not userid == todolist.owner and userid not in todolist.coworkers:
-    bot.answer_callback_query(callback_query_id = query.id, text = _("notallowed"))
+    query.answer(text = _("notallowed"))
     return ConversationHandler.END
   if action[1] == ListFooter["Check"]:
     if not todolist.toggleItem(int(action[2])):
@@ -282,10 +317,10 @@ def pushInline(update, context):
     if not todolist.toggleSubItem(int(action[2])):
       logger.warn("Subitem {} in list {} not toggled".format(action[2], action[0])) #Do something when this doesn't work
   elif action[1] == ListFooter["Exit"]:
-    bot.edit_message_text(chat_id = userid, message_id = dbFuncs.getSpecificMessage(action[0], userid)[0], text = _("revoked"))
+    query.edit_message_text(text = _("revoked"))
     todolist.deleteCoworker(userid)
     updateMessages(bot, todolist)
-    bot.answer_callback_query(callback_query_id = query.id, text = _("leftlist"))
+    query.answer(text = _("leftlist"))
     return ConversationHandler.END
   elif action[1] == ListFooter["Remove"]:
     check = False
@@ -301,61 +336,49 @@ def pushInline(update, context):
       if 'closing' in user_data and user_data['closing'] == action[0]:
         updateMessages(bot, todolist, "Closed")
         todolist.deleteList()
-        bot.answer_callback_query(callback_query_id = query.id, text = _("listremoved"))
+        query.answer(text = _("listremoved"))
       else:
         user_data['closing'] = action[0]
-        bot.answer_callback_query(callback_query_id = query.id, text = _("confirmremove"), show_alert = True)
+        query.answer(text = _("confirmremove"), show_alert = True)
       return ConversationHandler.END
   elif action[1] == ListFooter["Options"]:
-    if query.inline_message_id:
-      bot.edit_message_reply_markup(inline_message_id = query.inline_message_id, reply_markup = Keyboard.adminKeyboard(action[0], userid))
-    else:
-      bot.edit_message_reply_markup(chat_id = userid, message_id = query.message.message_id, reply_markup = Keyboard.adminKeyboard(action[0], userid))
+    query.edit_message_reply_markup(reply_markup = Keyboard.adminKeyboard(action[0], userid))
     dbFuncs.toggleAdminKeyboard(action[0], True)
-    bot.answer_callback_query(callback_query_id = query.id)
+    query.answer()
     return SETTINGS
   else:
     return pushAdmin(update, context)
   updateMessages(bot, todolist)
-  bot.answer_callback_query(callback_query_id = query.id)
+  query.answer()
   return ConversationHandler.END
 
 def pushAdmin(update, context):
   query, bot = update.callback_query, context.bot
   userid = query.from_user['id']
   _ = getTranslation(userid)
-  if query.message:
-    msgid = query.message.message_id
-  else:
-    msgid = query.inline_message_id
-  action = query.data.split("_")
+  action = getAction(query.data)
   todolist = Todolist(action[0])
   if action[1] == Options[OptionsOrder[0]]:
     dbFuncs.toggleListOpen(action[0], not dbFuncs.isOpen(action[0]))
-    bot.answer_callback_query(callback_query_id = query.id, text = _("listaccess").format(_("open") if dbFuncs.isOpen(action[0]) else _("closed")))
-    if helpFuncs.isInt(msgid):
-      bot.edit_message_reply_markup(chat_id = userid, message_id = msgid, reply_markup = Keyboard.adminKeyboard(action[0], userid))
-    else:
-      bot.edit_message_reply_markup(inline_message_id = msgid, reply_markup = Keyboard.adminKeyboard(action[0], userid))
+    query.answer(text = _("listaccess").format(_("open") if dbFuncs.isOpen(action[0]) else _("closed")))
+    query.edit_message_reply_markup(reply_markup = Keyboard.adminKeyboard(action[0], userid))
   elif action[1] == Options[OptionsOrder[1]] or action[1] == Options[OptionsOrder[2]]:
     dbFuncs.sortList(action[0], action[1])
-    bot.answer_callback_query(callback_query_id = query.id, text = _("itemsrearranged"))
+    query.answer(text = _("itemsrearranged"))
   elif action[1] == Options[OptionsOrder[3]]:
     backupSingle(bot, todolist)
     return SETTINGS
   elif action[1] == Options[OptionsOrder[4]]:
-    if helpFuncs.isInt(msgid):
-      bot.edit_message_reply_markup(chat_id = userid, message_id = msgid, reply_markup = Keyboard.userKeyboard(todolist, userid))
-    else:
-      bot.edit_message_reply_markup(inline_message_id = msgid, reply_markup = Keyboard.userKeyboard(todolist, userid))
+    query.edit_message_reply_markup(reply_markup = Keyboard.userKeyboard(todolist, userid))
     dbFuncs.toggleAdminKeyboard(action[0])
-    bot.answer_callback_query(callback_query_id = query.id)
+    query.answer()
     return ConversationHandler.END
   updateMessages(bot, todolist)
   return SETTINGS
 
 def cancel(update, context):
   context.user_data.clear()
+  update.message.reply_text("Action cancelled")
   return ConversationHandler.END
 
 #Might need to rework that. Again...
@@ -416,75 +439,83 @@ def sendAll(update, context):
     except Exception as e:
       logger.info(repr(e))
 
+def fixButtons(update, context):
+  query = update.callback_query
+  if "_" in query.data:
+    query.edit_message_reply_markup(Keyboard.userKeyboard(Todolist(query.data.split("_")[0]), query.message.chat.id))
+  elif query.data in list(Keyboard.Options.values()):
+    query.edit_message_reply_markup(Keyboard.adminKeyboard(query.data.split("_")[0], query.message.chat.id))
+  elif query.data in list(Keyboard.Settings.values()):
+    query.edit_message_reply_markup(Keyboard.settingsKeyboard())
+  query.answer("Something went wrong. Please try again.")
+
 def main(updater):
   dispatcher = updater.dispatcher
 
   dbFuncs.initDB()
 
-  newList = ConversationHandler(
-    entry_points = [CommandHandler('new', new, Filters.private), CommandHandler('start', start, Filters.private, pass_args = True)],
+  newcomm = CommandHandler('new', new, Filters.private)
+  startcomm = CommandHandler('start', start, Filters.private, pass_args = True)
+  cancelcomm = CommandHandler('cancel', cancel, Filters.private, pass_user_data = True)
+  sendcomm = CommandHandler('send', sendAll, Filters.private&Filters.chat(chat_id = [114951690]))
+  helpcomm = CommandHandler('help', help, Filters.private)
+  backupcomm = CommandHandler('backup', backup, Filters.private)
+  settingscomm = CommandHandler('settings', settings, Filters.private)
+  pushinlinecall = CallbackQueryHandler(pushInline, pattern = r"^"+patterns[0])
+  pushadmincall = CallbackQueryHandler(pushAdmin, pattern = r"^"+patterns[1])
+  settingsmaincall = CallbackQueryHandler(settings_main, pattern = r"^"+patterns[2])
+  settingslangcall = CallbackQueryHandler(settings_language, pattern = r"^"+patterns[3])
+  setnamemess = MessageHandler(Filters.text&Filters.private, setName)
+  blankcodemess = MessageHandler(Filters.private&Filters.regex(r'^\/.*'), blankCode)
+  editmessagemess = MessageHandler(Filters.private&Filters.text&Filters.update.edited_message, editMessage)
+  rcvreplymess = MessageHandler(Filters.private&Filters.text&Filters.reply&(~Filters.update.edited_message), rcvReply)
+  rcvmessagemess = MessageHandler(Filters.private&Filters.text&(~Filters.update.edited_message), rcvMessage)
+
+  newlistconv = ConversationHandler(
+    entry_points = [newcomm, startcomm],
     states = {
-      SETNAME: [MessageHandler(Filters.text&Filters.private, setName)]
+      SETNAME: [setnamemess]
     },
-    fallbacks = [CommandHandler('cancel', cancel, Filters.private, pass_user_data = True)]
+    fallbacks = [cancelcomm],
+    persistent = True, name = "newlist"
   )
 
-  listHandler = ConversationHandler(
-    entry_points = [CallbackQueryHandler(pushInline)],
+  listhandlerconv = ConversationHandler(
+    entry_points = [pushinlinecall],
     states = {
-      SETTINGS: [CallbackQueryHandler(pushAdmin)]
+      SETTINGS: [pushadmincall]
     },
-    fallbacks = [CallbackQueryHandler(pushInline), CommandHandler('cancel', cancel, Filters.private, pass_user_data = True)],
-    per_message = True
+    fallbacks = [pushinlinecall, cancelcomm],
+    persistent = True, name = "listhandler", per_message = True
   )
 
-  dispatcher.add_handler(newList)
-  dispatcher.add_handler(listHandler)
-  dispatcher.add_handler(CallbackQueryHandler(pushInline))
-  dispatcher.add_handler(CommandHandler('send', sendAll, Filters.private&Filters.chat(chat_id = [114951690])))
-  dispatcher.add_handler(CommandHandler('help', help, Filters.private))
-  dispatcher.add_handler(CommandHandler('backup', backup, Filters.private))
+  settingshandlerconv = ConversationHandler(
+    entry_points = [settingsmaincall],
+    states = {
+      SETTINGS: [settingsmaincall],
+      LANGUAGE: [settingslangcall]
+    },
+    fallbacks = [cancelcomm],
+    persistent = True, name = "settingshandler", per_message = True
+  )
+
+  dispatcher.add_handler(newlistconv)
+  dispatcher.add_handler(listhandlerconv)
+  dispatcher.add_handler(settingshandlerconv)
+  dispatcher.add_handler(pushinlinecall)
+  dispatcher.add_handler(CallbackQueryHandler(fixButtons))
+  dispatcher.add_handler(sendcomm)
+  dispatcher.add_handler(helpcomm)
+  dispatcher.add_handler(backupcomm)
+  dispatcher.add_handler(settingscomm)
   dispatcher.add_handler(InlineQueryHandler(inlineQuery))
   dispatcher.add_handler(ChosenInlineResultHandler(chosenQuery))
-  dispatcher.add_handler(MessageHandler(Filters.private&Filters.regex(r'^\/.*'), blankCode))
-  dispatcher.add_handler(MessageHandler(Filters.text&Filters.private&Filters.update.edited_message, editMessage))
-  dispatcher.add_handler(MessageHandler(Filters.private&Filters.text&Filters.reply&(~Filters.update.edited_message), rcvReply))
-  dispatcher.add_handler(MessageHandler(Filters.text&Filters.private&(~Filters.update.edited_message), rcvMessage))
+  dispatcher.add_handler(blankcodemess)
+  dispatcher.add_handler(editmessagemess)
+  dispatcher.add_handler(rcvreplymess)
+  dispatcher.add_handler(rcvmessagemess)
   dispatcher.add_error_handler(contextCallback)
-
-
-  try:
-    with open('{0}/userdata'.format(backupsDir), 'rb') as file:
-      dispatcher.user_data = pload(file)
-  except Exception as e:
-    logger.warning(repr(e))
-  try:
-    with open('{0}/newList'.format(backupsDir), 'rb') as file:
-      newList.conversations = pload(file)
-  except Exception as e:
-    logger.warning(repr(e))
-  try:
-    with open('{0}/listHandler'.format(backupsDir), 'rb') as file:
-      listHandler.conversations = pload(file)
-  except Exception as e:
-    logger.warning(repr(e))
 
   updater.start_polling()
 
   updater.idle()
-
-  try:
-    with open('{0}/userdata'.format(backupsDir), 'wb+') as file:
-      pdump(dispatcher.user_data, file)
-  except Exception as e:
-    logger.warning(repr(e))
-  try:
-    with open('{0}/newList'.format(backupsDir), 'wb+') as file:
-      pdump(newList.conversations, file)
-  except Exception as e:
-    logger.warning(repr(e))
-  try:
-    with open('{0}/listHandler'.format(backupsDir), 'wb+') as file:
-      pdump(listHandler.conversations, file)
-  except Exception as e:
-    logger.warning(repr(e))
