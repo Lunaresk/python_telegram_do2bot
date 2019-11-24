@@ -231,9 +231,12 @@ def editMessage(update, context):
 
 def updateMessages(bot, todolist, msgtext = ""):
   inlinetext = msgtext
+  editOwnerMsg = True
   if msgtext != "Closed":
     msgtext, inlinetext = str(todolist), repr(todolist)
-  if not dbFuncs.getAdminTerminal(todolist.id):
+    if dbFuncs.getAdminTerminal(todolist.id):
+      editOwnerMsg = False
+  if editOwnerMsg:
     ownermsg = todolist.getMessage()
     try:
       if helpFuncs.isInt(ownermsg):
@@ -305,8 +308,6 @@ def pushInline(update, context):
   action = getAction(query.data)
   logger.info(str(action))
   todolist = Todolist(action[0])
-  if not action[1] == ListFooter["Remove"]:
-    user_data.pop('closing', None)
   if not userid == todolist.owner and userid not in todolist.coworkers:
     query.answer(text = _("notallowed"))
     return ConversationHandler.END
@@ -325,22 +326,14 @@ def pushInline(update, context):
   elif action[1] == ListFooter["Remove"]:
     check = False
     if todolist.items:
-      temp = todolist.items[0].done
       for item in todolist.items:
-        if item.done != temp:
+        if item.done:
           check = True
           break
     if check:
       todolist.deleteDones()
     else:
-      if 'closing' in user_data and user_data['closing'] == action[0]:
-        updateMessages(bot, todolist, "Closed")
-        todolist.deleteList()
-        query.answer(text = _("listremoved"))
-      else:
-        user_data['closing'] = action[0]
-        query.answer(text = _("confirmremove"), show_alert = True)
-      return ConversationHandler.END
+      query.answer(text = _("Nothing to remove"))
   elif action[1] == ListFooter["Options"]:
     query.edit_message_reply_markup(reply_markup = Keyboard.adminKeyboard(action[0], userid))
     dbFuncs.toggleAdminKeyboard(action[0], True)
@@ -353,11 +346,13 @@ def pushInline(update, context):
   return ConversationHandler.END
 
 def pushAdmin(update, context):
-  query, bot = update.callback_query, context.bot
+  query, bot, user_data = update.callback_query, context.bot, context.user_data
   userid = query.from_user['id']
   _ = getTranslation(userid)
   action = getAction(query.data)
   todolist = Todolist(action[0])
+  if not action[1] == Options[OptionsOrder[4]]:
+    user_data.pop('closing', None)
   if action[1] == Options[OptionsOrder[0]]:
     dbFuncs.toggleListOpen(action[0], not dbFuncs.isOpen(action[0]))
     query.answer(text = _("listaccess").format(_("open") if dbFuncs.isOpen(action[0]) else _("closed")))
@@ -369,6 +364,15 @@ def pushAdmin(update, context):
     backupSingle(bot, todolist)
     return SETTINGS
   elif action[1] == Options[OptionsOrder[4]]:
+    if 'closing' in user_data and user_data['closing'] == action[0]:
+      updateMessages(bot, todolist, "Closed")
+      todolist.deleteList()
+      query.answer(text = _("listremoved"))
+      return ConversationHandler.END
+    else:
+      user_data['closing'] = action[0]
+      query.answer(text = _("confirmremove"), show_alert = True)
+  elif action[1] == Options[OptionsOrder[-1]]:
     query.edit_message_reply_markup(reply_markup = Keyboard.userKeyboard(todolist, userid))
     dbFuncs.toggleAdminKeyboard(action[0])
     query.answer()
@@ -388,7 +392,6 @@ def getTranslation(userID, base = "main"):
   trans.install()
   return trans.gettext
 
-#>>>>>KINDA REWROTE,NEED REVISION
 @run_async
 def inlineQuery(update, context):
   logger.info("Receiving inline query")
