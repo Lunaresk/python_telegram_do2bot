@@ -1,7 +1,7 @@
 from sys import getsizeof
 from threading import Thread
 
-from ..dbFuncs import (codeInDB, getList, getItems, getCoworkers, getCoworkerMessage, getCoworkerMessages, getInlineMessages as dbgetInlineMessages, getOwnerMessage, insertCoworker, insertList, removeCoworker, removeItems, removeList)
+from ..dbFuncs import (codeInDB, editItems as dbeditItems, getList, getItems, getItemsByEdit, getTopItemByEdit, getCoworkers, getCoworkerMessage, getCoworkerMessages, getInlineMessages as dbgetInlineMessages, getOwnerMessage, insertCoworker, insertList, removeCoworker, removeItems, removeList)
 from ..helpFuncs import id_generator
 from .itemclass import Item
 from .userclass import User
@@ -79,6 +79,20 @@ class Todolist:
       else:
         raise StopIteration("Too many items")
 
+  def anyItemChecked(self):
+    checked = False
+    for item in self.items:
+      if item.subitems:
+        for subitem in item.subitems:
+          if subitem.done:
+            checked = True
+            break
+      if item.done:
+        checked = True
+      if checked:
+        break
+    return checked
+
   def deleteCoworker(self, id):
     try:
       place = self.coworkers.index(id)
@@ -92,11 +106,77 @@ class Todolist:
     for item in self.items[:]:
       if item.done:
         self.items.pop(self.items.index(item))
+      if item.subitems:
+        for subitem in item.subitems[:]:
+          if subitem.done:
+            item.subitems.pop(item.subitems.index(subitem))
     dbfunc = Thread(target=removeItems, args=(self.id,))
     dbfunc.start()
 
   def deleteList(self):
     removeList(self.id)
+
+  def difference(self, other):
+    if type(self) != type(other):
+      raise TypeError("Type mismatch")
+    changes = ["Changes in /{0}".format(self.id)]
+    if self.name != other.name:
+      changes.append("Name changed: '{1}' -> '{2}'".format(other.id, self.name, other.name))
+    if self.owner != other.owner:
+      changes.append("New owner: '{1}' -> '{2}'".format(other.id, self.owner, other.owner))
+    for selfitem in self.items:
+      try:
+        otheritem = other.items[other.items.index(selfitem)]
+      except ValueError as error:
+        changes.append("➖ {0}".format(selfitem.name))
+      else:
+        if otheritem.name != selfitem.name:
+          changes.append("Item name changed: '{0}' -> '{1}'".format(selfitem.name, otheritem.name))
+        if otheritem.done != selfitem.done:
+          ticked = ["◻", "✅"]
+          changes.append("{0} {1}".format(ticked[otheritem.done], otheritem.name))
+    for otheritem in other.items:
+      if otheritem not in self.items:
+        changes.append("➕ {0}".format(otheritem.name))
+    for selfworker in self.coworkers:
+      try:
+        otherworker = other.coworkers[other.coworkers.index(selfworker)]
+      except ValueError as error:
+        changes.append("Left the List: {0}".format(selfworker.name))
+      else:
+        if otherworker.name != selfworker.name:
+          changes.append("Member name changed: '{0}' -> '{1}'".format(selfworker.name, otherworker.name))
+    for otherworker in other.coworkers:
+      if otherworker not in self.coworkers:
+        changes.append("Member joined: {0}".format(otherworker.name))
+    return changes
+
+
+#TODO revision needed
+  def editItems(self, newItems, userID, messageID):
+    topItem = getTopItemByEdit(userID, messageID)
+    if topItem:
+      itemindex = self.items.index(topItem)
+      oldItems = getSubItemsByEdit(userID, messageID)
+      for i in range(len(oldItems))[::-1]:
+        subindex = self.items[itemindex].subitems.index(oldItems[i][0])
+        try:
+          self.items[itemindex].subitems[subindex].name = newItems[i]
+        except:
+          del self.items[itemindex].subitems[subindex]
+      if len(oldItems) < len(newItems):
+        self.addSubItems(topItem, newItems[len(oldItems):], userID, messageID, len(oldItems))
+    else:
+      oldItems = getItemsByEdit(userID, messageID)
+      for i in range(len(oldItems))[::-1]:
+        itemindex = self.items.index(oldItems[i][0])
+        try:
+          self.items[itemindex].name = newItems[i]
+        except:
+          del self.items[itemindex]
+      if len(oldItems) < len(newItems):
+        self.addItems(newItems[len(oldItems):], userID, messageID, len(oldItems))
+    dbeditItems(newItems, userID, messageID)
 
   def getMessage(self):
     return getOwnerMessage(self.id)[0]

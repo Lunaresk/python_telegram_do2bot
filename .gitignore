@@ -103,6 +103,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+
+# own ignores
 # backup files
 userdata
 
@@ -114,3 +116,6 @@ temp/
 
 #encryption things
 cryptfuncs.py
+
+# main.py not changing, so ignore it
+main.py
