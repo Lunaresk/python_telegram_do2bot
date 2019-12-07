@@ -1,6 +1,7 @@
 import gettext
 import logging
 
+from copy import deepcopy
 from json import (load as jload, dump as jdump)
 from pickle import (load as pload, dump as pdump)
 from sys import getsizeof
@@ -28,8 +29,6 @@ workingDir = "/home/lunaresk/gitProjects/telegramBots/do2bot"
 backupsDir = workingDir + "/temp"
 localeDir = workingDir + "/locales"
 patterns = Keyboard.patterns
-
-activelists = [] #For future speed boost
 
 def start(update, context):
   logger.info("Start triggered")
@@ -59,9 +58,10 @@ def start(update, context):
         elif not dbFuncs.isOpen(code):
           message.reply_text(_("notopen"))
         else:
+          templist = deepcopy(todolist)
           user_data['list'], user_data['current'] = code, message.reply_text(str(todolist), parse_mode = 'Markdown', disable_web_page_preview = True, reply_markup = Keyboard.userKeyboard(todolist, userid)).message_id
           todolist.addCoworker(userid, message.from_user['first_name'], user_data['current'])
-          updateMessages(bot, todolist)
+          updateMessages(bot, todolist, oldlist = templist, jobqueue = context.job_queue)
       else:
         user_data['list'], user_data['current'] = code, message.reply_text(str(todolist), parse_mode = 'Markdown', disable_web_page_preview = True, reply_markup = Keyboard.userKeyboard(todolist, userid)).message_id
         try:
@@ -191,12 +191,13 @@ def rcvMessage(update, context):
       message.reply_text(_("notspecified"))
       return
     todolist = Todolist(user_data['list'])
+    templist = deepcopy(todolist)
     items = message.text.split("\n")
     try:
       todolist.addItems(items, userid, message.message_id)
     except StopIteration as error:
       message.reply_text(_("buttonlimit"))
-  updateMessages(bot, todolist)
+  updateMessages(bot, todolist, oldlist = templist, jobqueue = context.job_queue)
 
 @run_async
 def rcvReply(update, context):
@@ -208,6 +209,7 @@ def rcvReply(update, context):
     message.reply_text(_("notunique"))
     return ConversationHandler.END
   corelist = Todolist(items_from_reply[0][1])
+  templist = deepcopy(corelist)
   items = message.text.split("\n")
   if not userid in corelist.coworkers and not userid == corelist.owner:
     message.reply_text(_("notallowed"))
@@ -216,7 +218,7 @@ def rcvReply(update, context):
     corelist.addSubItems(items_from_reply[0][0], items, userid, replyid)
   except StopIteration as error:
     message.reply_text(text = error)
-  updateMessages(bot, corelist)
+  updateMessages(bot, corelist, oldlist = templist, jobqueue = context.job_queue)
 
 @run_async
 def editMessage(update, context):
@@ -224,18 +226,19 @@ def editMessage(update, context):
   if message.reply_markup:
     return
   try:
-    code = dbFuncs.editItems(message.text.split("\n"), message.from_user['id'], message.message_id)
-    updateMessages(bot, Todolist(code))
+    todolist = Todolist(dbFuncs.getCodeByEdit(message.from_user['id'], message.message_id))
+    templist = deepcopy(todolist)
+    todolist.editItems(message.text.split("\n"), message.from_user['id'], message.message_id)
+    updateMessages(bot, todolist, oldlist = templist, jobqueue = context.job_queue)
   except Exception as e:
     logger.info(repr(e))
 
-def updateMessages(bot, todolist, msgtext = ""):
+def updateMessages(bot, todolist, msgtext = "", oldlist = None, jobqueue = None):
   inlinetext = msgtext
   editOwnerMsg = True
   if msgtext != "Closed":
     msgtext, inlinetext = str(todolist), repr(todolist)
-    if dbFuncs.getAdminTerminal(todolist.id):
-      editOwnerMsg = False
+    editOwnerMsg = False if dbFuncs.getAdminTerminal(todolist.id) else True
   if editOwnerMsg:
     ownermsg = todolist.getMessage()
     try:
@@ -267,6 +270,8 @@ def updateMessages(bot, todolist, msgtext = ""):
           dbFuncs.removeInlineMessage(inline[1])
         else:
           logger.error(error)
+  if jobqueue:
+    helpFuncs.setJob(oldlist, jobqueue, notifyList)
 
 @run_async
 def backup(update, context):
@@ -308,6 +313,7 @@ def pushInline(update, context):
   action = getAction(query.data)
   logger.info(str(action))
   todolist = Todolist(action[0])
+  templist = deepcopy(todolist)
   if not userid == todolist.owner and userid not in todolist.coworkers:
     query.answer(text = _("notallowed"))
     return ConversationHandler.END
@@ -324,13 +330,7 @@ def pushInline(update, context):
     query.answer(text = _("leftlist"))
     return ConversationHandler.END
   elif action[1] == ListFooter["Remove"]:
-    check = False
-    if todolist.items:
-      for item in todolist.items:
-        if item.done:
-          check = True
-          break
-    if check:
+    if todolist.anyItemChecked():
       todolist.deleteDones()
     else:
       query.answer(text = _("Nothing to remove"))
@@ -341,7 +341,7 @@ def pushInline(update, context):
     return SETTINGS
   else:
     return pushAdmin(update, context)
-  updateMessages(bot, todolist)
+  updateMessages(bot, todolist, oldlist = templist, jobqueue = context.job_queue)
   query.answer()
   return ConversationHandler.END
 
@@ -351,6 +351,7 @@ def pushAdmin(update, context):
   _ = getTranslation(userid)
   action = getAction(query.data)
   todolist = Todolist(action[0])
+  templist = deepcopy(todolist)
   if not action[1] == Options[OptionsOrder[4]]:
     user_data.pop('closing', None)
   if action[1] == Options[OptionsOrder[0]]:
@@ -452,26 +453,41 @@ def fixButtons(update, context):
     query.edit_message_reply_markup(Keyboard.settingsKeyboard())
   query.answer("Something went wrong. Please try again.")
 
+def notifyList(context):
+  bot, job = context.bot, context.job
+  oldlist = job.context
+  newlist = Todolist(oldlist.id)
+  members = [newlist.owner]
+  members.extend(newlist.coworkers)
+  differences = oldlist.difference(newlist)
+  if len(differences) > 1:
+    fulltext = '\n'.join(differences)
+    for member in members:
+      bot.send_message(chat_id = member.id, text = fulltext)
+  overflowjobs = job.job_queue.get_jobs_by_name(oldlist.id)
+  for job in overflowjobs:
+    job.schedule_removal()
+
 def main(updater):
   dispatcher = updater.dispatcher
 
   dbFuncs.initDB()
 
   newcomm = CommandHandler('new', new, Filters.private)
-  startcomm = CommandHandler('start', start, Filters.private, pass_args = True)
+  startcomm = CommandHandler('start', start, Filters.private, pass_args = True, pass_job_queue = True)
   cancelcomm = CommandHandler('cancel', cancel, Filters.private, pass_user_data = True)
   sendcomm = CommandHandler('send', sendAll, Filters.private&Filters.chat(chat_id = [114951690]))
   helpcomm = CommandHandler('help', help, Filters.private)
   backupcomm = CommandHandler('backup', backup, Filters.private)
   settingscomm = CommandHandler('settings', settings, Filters.private)
-  pushinlinecall = CallbackQueryHandler(pushInline, pattern = r"^"+patterns[0])
-  pushadmincall = CallbackQueryHandler(pushAdmin, pattern = r"^"+patterns[1])
+  pushinlinecall = CallbackQueryHandler(pushInline, pattern = r"^"+patterns[0], pass_job_queue = True)
+  pushadmincall = CallbackQueryHandler(pushAdmin, pattern = r"^"+patterns[1], pass_job_queue = True)
   settingsmaincall = CallbackQueryHandler(settings_main, pattern = r"^"+patterns[2])
   settingslangcall = CallbackQueryHandler(settings_language, pattern = r"^"+patterns[3])
   setnamemess = MessageHandler(Filters.text&Filters.private, setName)
   blankcodemess = MessageHandler(Filters.private&Filters.regex(r'^\/.*'), blankCode)
-  editmessagemess = MessageHandler(Filters.private&Filters.text&Filters.update.edited_message, editMessage)
-  rcvreplymess = MessageHandler(Filters.private&Filters.text&Filters.reply&(~Filters.update.edited_message), rcvReply)
+  editmessagemess = MessageHandler(Filters.private&Filters.text&Filters.update.edited_message, editMessage, pass_job_queue = True)
+  rcvreplymess = MessageHandler(Filters.private&Filters.text&Filters.reply&(~Filters.update.edited_message), rcvReply, pass_job_queue = True)
   rcvmessagemess = MessageHandler(Filters.private&Filters.text&(~Filters.update.edited_message), rcvMessage)
 
   newlistconv = ConversationHandler(

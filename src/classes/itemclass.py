@@ -29,7 +29,7 @@ class Item:
   def __lt__(self, other):
     if type(self) != type(other):
       raise TypeError("Type mismatch")
-    return self.id < other.id
+    return (self.issub == other.issub and self.id < other.id)
 
   def __sizeof__(self):
     total = getsizeof(self.id) + getsizeof(self.name) + getsizeof(self.done) + getsizeof(self.issub)

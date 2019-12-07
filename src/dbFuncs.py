@@ -198,10 +198,11 @@ def getCodeByEdit(fromuser, msgID):
   with getCur() as cur:
     cur.execute("SELECT List FROM Items WHERE FromUser = %s AND MessageID = %s;", (fromuser, msgID))
     temp = cur.fetchone()
-    if temp:
-      if type(temp) == type(tuple()):
-        return temp[0]
-    return ""
+  try:
+    temp = temp[0]
+  except:
+    temp = ""
+  return temp
 
 def getTopItemByEdit(fromuser, msgID):
   with getCur() as cur:
@@ -215,6 +216,11 @@ def getTopItemByEdit(fromuser, msgID):
 def getItemsByEdit(fromuser, msgID):
   with getCur() as cur:
     cur.execute("SELECT * FROM Items WHERE FromUser = %s AND MessageID = %s;", (fromuser, msgID))
+    return cur.fetchall()
+
+def getSubItemsByEdit(fromuser, msgID):
+  with getCur() as cur:
+    cur.execute("SELECT * FROM Subitems WHERE FromUser = %s AND MessageID = %s;", (fromuser, msgID))
     return cur.fetchall()
 
 def removeExcessItems(fromuser, msgID, line):
