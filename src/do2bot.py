@@ -9,6 +9,7 @@ from telegram import (InlineKeyboardButton, InlineKeyboardMarkup, InlineQueryRes
 from telegram.ext import (Updater, CommandHandler, MessageHandler, RegexHandler, CallbackQueryHandler, ConversationHandler, InlineQueryHandler, ChosenInlineResultHandler, Filters)
 from telegram.ext.dispatcher import run_async
 from telegram.error import BadRequest
+from threading import Lock
 from time import sleep
 
 from . import dbFuncs
@@ -29,6 +30,8 @@ workingDir = "/home/lunaresk/gitProjects/telegramBots/do2bot"
 backupsDir = workingDir + "/temp"
 localeDir = workingDir + "/locales"
 patterns = Keyboard.patterns
+
+lock = Lock()
 
 def start(update, context):
   logger.info("Start triggered")
@@ -271,7 +274,8 @@ def updateMessages(bot, todolist, msgtext = "", oldlist = None, jobqueue = None)
         else:
           logger.error(error)
   if jobqueue:
-    helpFuncs.setJob(oldlist, jobqueue, notifyList)
+    with lock:
+      helpFuncs.setJob(oldlist, jobqueue, notifyList)
 
 @run_async
 def backup(update, context):
@@ -454,18 +458,17 @@ def fixButtons(update, context):
   query.answer("Something went wrong. Please try again.")
 
 def notifyList(context):
-  bot, job = context.bot, context.job
-  oldlist = job.context
-  newlist = Todolist(oldlist.id)
-  members = [newlist.owner]
-  members.extend(newlist.coworkers)
-  differences = oldlist.difference(newlist)
-  if len(differences) > 1:
-    fulltext = '\n'.join(differences)
-    for member in members:
-      bot.send_message(chat_id = member.id, text = fulltext)
-  overflowjobs = job.job_queue.get_jobs_by_name(oldlist.id)
-  for job in overflowjobs:
+  with lock:
+    bot, job = context.bot, context.job
+    oldlist = job.context
+    newlist = Todolist(oldlist.id)
+    members = [newlist.owner]
+    members.extend(newlist.coworkers)
+    differences = oldlist.difference(newlist)
+    if len(differences) > 1:
+      fulltext = '\n'.join(differences)
+      for member in members:
+        bot.send_message(chat_id = member.id, text = fulltext)
     job.schedule_removal()
 
 def main(updater):
