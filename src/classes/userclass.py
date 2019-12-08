@@ -1,3 +1,4 @@
+from telegram.utils.helpers import mention_markdown
 from sys import getsizeof
 
 class User:
@@ -15,4 +16,4 @@ class User:
     return getsizeof(self.id) + getsizeof(self.name) + getsizeof(self.lang)
 
   def __str__(self) -> str:
-    return "[{0}](tg://user?id={1})".format(self.name, self.id)
+    return mention_markdown(self.id, self.name)

@@ -54,12 +54,10 @@ def rearrangeList(items, sorting):
   return sortedIndexes
 
 def setJob(todolist, jobqueue, callback):
-  job = jobqueue.get_jobs_by_name(todolist.id)
-  try:
-    job = job[0]
-  except:
-    pass
-  else:
-    todolist = job.context
-    job.schedule_removal()
+  jobs = jobqueue.get_jobs_by_name(todolist.id)
+  print(jobs)
+  if jobs:
+    todolist = jobs[0].context
+    for job in jobs:
+      job.schedule_removal()
   jobqueue.run_once(callback, 10, todolist, todolist.id)
