@@ -1,14 +1,26 @@
 from telegram import (InlineKeyboardButton, InlineKeyboardMarkup)
+
 from ..dbFuncs import (getInlineMessages, isOpen)
 
 class Keyboard:
-  ListFooter = {"Check": 'c', "Options": 'o', "Remove": 'r', "Exit": 'e', "CheckSub": 's'}
+  ListFooterNames = ["Check", "Options", "Remove", "Exit", "CheckSub"]
+  ListFooter = {ListFooterNames[0]: 'c', ListFooterNames[1]: 'o', ListFooterNames[2]: 'r', ListFooterNames[3]: 'e', ListFooterNames[4]: 's'}
+  OwnerOptions, UserOptions = OrderedDict(), OrderedDict()
+  OwnerOptionsNames = ["{0}", "✅⬆", "✅⬇", "Backup", "Delete List", "Notifications", "↩"]
+  temp = [["{0}", 'open'], ["✅⬆", "sortUp"], ["✅⬇", "sortDn"], ["Backup", "backup"], ["Delete List", "delete"], ["Notifications", "notify"], ["↩", "back"]]
+  for k, v in temp:
+    OwnerOptions[k] = v
+  temp = [["Notifications", "notify"], ["↩", "back"]]
+  for k, v in temp:
+    UserOptions[k] = v
+  del temp
   OptionsOrder = ["{0}", "✅⬆", "✅⬇", "Backup", "Delete List", "↩"]
   Options = {OptionsOrder[0]: "open", OptionsOrder[1]: "sortUp", OptionsOrder[2]: "sortDn", OptionsOrder[3]: "backup", OptionsOrder[4]: "delete", OptionsOrder[-1]: "back"}
+  UserOptions = []
   Settings = {"Language": 'lang', "Notifications": 'noti'}
   patterns = ["user", "admi", "sett", "lang"]
 
-  def userKeyboard(todolist, user):
+  def listKeyboard(todolist, user):
     ListFooter = Keyboard.ListFooter
     code, items = todolist.id, todolist.items
     keyboard = []
@@ -40,15 +52,17 @@ class Keyboard:
       keyboard.append([InlineKeyboardButton(text = "➕", url = "https://telegram.me/do2bot?start={0}".format(code))])
     return InlineKeyboardMarkup(keyboard)
 
-  def adminKeyboard(code, userid):
-    Options, OptionsOrder, pattern = dict(Keyboard.Options), Keyboard.OptionsOrder, Keyboard.patterns[1]
-    for key in Options:
-      Options[key] = str(code)+"_"+Options[key]
+  def managerKeyboard(code):
+    OwnerOptions, pattern = OrderedDict(Keyboard.OwnerOptions), Keyboard.patterns[1]
+    for key, value in OwnerOptions:
+      OwnerOptions[key] = str(code)+"_"+value
     keyboard = [[]]
-    keyboard[-1].append(InlineKeyboardButton(text = ("👥" if isOpen(code) else "👤"), callback_data = pattern + u":{0}".format(Options[OptionsOrder[0]])))
-    del Options[OptionsOrder[0]]
-    keyboard.extend(Keyboard.customKeyboard(Options, pattern, k=2))
+    keyboard[-1].append(InlineKeyboardButton(text = ("👥" if isOpen(code) else "👤"), callback_data = pattern + u":{0}".format(OwnerOptions.popitem(last = False)[1])))
+    keyboard.extend(Keyboard.customKeyboard(OwnerOptions, pattern, k=2))
     return InlineKeyboardMarkup(keyboard)
+
+  def memberKeyboard(code):
+    pass
 
   def settingsKeyboard():
     Settings = {"Language": 'lang', "Notifications": 'noti'}

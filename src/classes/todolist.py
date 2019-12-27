@@ -8,21 +8,21 @@ from .userclass import User
 
 class Todolist:
   def __init__(self, id = "", name = "", owner = 0, ownername = ""):
-    self.coworkers = []
+    self.members = []
     self.items = []
     if name and owner and ownername:
       self.id = id
       self.name = name
-      self.owner = User(owner, ownername)
+      self.manager = User(owner, ownername)
     else:
       listdetails = getList(id)
       if listdetails:
         self.id = listdetails[0]
         self.name = listdetails[1]
-        self.owner = User(listdetails[2], listdetails[3])
-        coworkers = getCoworkers(self.id)
-        for coworker in coworkers:
-          self.coworkers.append(User(coworker[1], coworker[2]))
+        self.manager = User(listdetails[2], listdetails[3])
+        members = getCoworkers(self.id)
+        for coworker in members:
+          self.members.append(User(coworker[1], coworker[2]))
         items = getItems(self.id)
         for item in items:
           self.items.append(Item(item[0], item[2], item[3]))
@@ -38,27 +38,27 @@ class Todolist:
     return ListIterator(self)
 
   def __repr__(self) -> str:
-    text = u"📋 {0}, 🔗[/{1}](https://telegram.me/do2bot?start={1}), 👥 {2}".format(self.name, self.id, str(self.owner))
-    for coworker in self.coworkers:
+    text = u"📋 {0}, 🔗[/{1}](https://telegram.me/do2bot?start={1}), 👥 {2}".format(self.name, self.id, str(self.manager))
+    for coworker in self.members:
       text += ", " + str(coworker)
     return text
 
   def __sizeof__(self) -> int:
-    total = getsizeof(self.id) + getsizeof(self.name) + getsizeof(self.owner)
-    for coworker in self.coworkers:
+    total = getsizeof(self.id) + getsizeof(self.name) + getsizeof(self.manager)
+    for coworker in self.members:
       total += getsizeof(coworker)
     for item in self.items:
       total += getsizeof(item)
     return total
 
   def __str__(self) -> str:
-    text = u"📋 {0}, 🔗/{1}, 👥 {2}".format(self.name, self.id, str(self.owner))
-    for coworker in self.coworkers:
+    text = u"📋 {0}, 🔗/{1}, 👥 {2}".format(self.name, self.id, str(self.manager))
+    for coworker in self.members:
       text += ", " + str(coworker)
     return text
 
   def addCoworker(self, coworker, coname, msgid):
-    self.coworkers.append(User(coworker, coname))
+    self.members.append(User(coworker, coname))
     dbfunc = Thread(target=insertCoworker, args=(self.id, coworker, coname, msgid))
     dbfunc.start()
 
@@ -95,10 +95,10 @@ class Todolist:
 
   def deleteCoworker(self, id):
     try:
-      place = self.coworkers.index(id)
+      place = self.members.index(id)
     except ValueError as error:
       return False
-    coworker = self.coworkers.pop(place)
+    coworker = self.members.pop(place)
     dbfunc = Thread(target=removeCoworker, args=(self.id, coworker.id))
     dbfunc.start()
 
@@ -122,8 +122,8 @@ class Todolist:
     changes = ["Changes in /{0}".format(self.id)]
     if self.name != other.name:
       changes.append("Name changed: '{1}' -> '{2}'".format(other.id, self.name, other.name))
-    if self.owner != other.owner:
-      changes.append("New owner: '{1}' -> '{2}'".format(other.id, self.owner, other.owner))
+    if self.manager != other.manager:
+      changes.append("New manager: '{1}' -> '{2}'".format(other.id, self.manager, other.manager))
     for selfitem in self.items:
       try:
         otheritem = other.items[other.items.index(selfitem)]
@@ -138,16 +138,16 @@ class Todolist:
     for otheritem in other.items:
       if otheritem not in self.items:
         changes.append("➕ {0}".format(otheritem.name))
-    for selfworker in self.coworkers:
+    for selfworker in self.members:
       try:
-        otherworker = other.coworkers[other.coworkers.index(selfworker)]
+        otherworker = other.members[other.members.index(selfworker)]
       except ValueError as error:
         changes.append("Left the List: {0}".format(selfworker.name))
       else:
         if otherworker.name != selfworker.name:
           changes.append("Member name changed: '{0}' -> '{1}'".format(selfworker.name, otherworker.name))
-    for otherworker in other.coworkers:
-      if otherworker not in self.coworkers:
+    for otherworker in other.members:
+      if otherworker not in self.members:
         changes.append("Member joined: {0}".format(otherworker.name))
     return changes
 

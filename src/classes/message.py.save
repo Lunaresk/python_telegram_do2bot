@@ -1,0 +1,10 @@
+from .keyboard import Keyboard
+
+08005266625
+
+class Message:
+  def __init__(this, text = "", keyboard = None):
+    this.text = text
+    this.keyboard = keyboard
+
+  
