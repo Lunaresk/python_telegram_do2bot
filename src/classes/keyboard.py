@@ -46,7 +46,7 @@ class Keyboard:
                     ["⠀" for _ in range(249 - len(subitem.name))])),
                                                       callback_data=pattern + u":{0}_{1}_{2}".format(code, list_footer[
                                                           "CheckSub"], subitem.id))])
-        if todolist.owner == user:
+        if todolist.manager == user:
             keyboard.append([InlineKeyboardButton(text="🗑", callback_data=pattern + u":{0}_{1}".format(code,
                                                                                                         list_footer[
                                                                                                             "Remove"])),
@@ -54,13 +54,15 @@ class Keyboard:
                                                   switch_inline_query=code),
                              InlineKeyboardButton(text="⚙", callback_data=pattern + ":{0}_{1}".format(code, list_footer[
                                  "Options"]))])
-        elif user in todolist.coworkers:
+        elif user in todolist.members:
             keyboard.append([InlineKeyboardButton(text="🗑", callback_data=pattern + u":{0}_{1}".format(code,
                                                                                                         list_footer[
                                                                                                             "Remove"])),
                              InlineKeyboardButton(text="🏃",
                                                   callback_data=pattern + ":{0}_{1}".format(code,
-                                                                                            list_footer["Exit"]))])
+                                                                                            list_footer["Exit"])),
+                             InlineKeyboardButton(text="⚙", callback_data=pattern + ":{0}_{1}".format(code, list_footer[
+                                 "Options"]))])
         if len(keyboard) == 0:
             keyboard.append([InlineKeyboardButton(text="➕", url="https://telegram.me/do2bot?start={0}".format(code))])
         return InlineKeyboardMarkup(keyboard)
@@ -68,7 +70,7 @@ class Keyboard:
     @staticmethod
     def managerKeyboard(code):
         manager_options, pattern = dict(Keyboard.ManagerOptions), Keyboard.patterns[1]
-        for key, value in manager_options:
+        for key, value in manager_options.items():
             manager_options[key] = str(code) + "_" + value
         keyboard = [[]]
         keyboard[-1].append(InlineKeyboardButton(text=("👥" if isOpen(code) else "👤"),
@@ -84,7 +86,7 @@ class Keyboard:
         for key in member_options:
             if key not in Keyboard.ManagerOptionsNames[member_border:]:
                 member_options.pop(key)
-        for key, value in member_options:
+        for key, value in member_options.items():
             member_options[key] = str(code) + "_" + value
         return InlineKeyboardMarkup(Keyboard.customKeyboard(member_options, pattern))
 

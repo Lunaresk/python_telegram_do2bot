@@ -19,12 +19,12 @@ class User:
     def __str__(self) -> str:
         return mention_markdown(self.id, self.name)
 
-    def __getattr__(self, item):
-        if item == "id":
-            return self.id
-        elif item == "name":
-            return self.name
-        elif item == "lang":
-            return self.lang
-        else:
-            return ValueError("{0} not in class".format(item))
+#    def __getattr__(self, item):
+#        if item == "id":
+#            return self.id
+#        elif item == "name":
+#            return self.name
+#        elif item == "lang":
+#            return self.lang
+#        else:
+#            raise ValueError("{0} not in class".format(item))

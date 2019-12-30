@@ -267,48 +267,87 @@ def editMessage(update, context):
         logger.info(repr(e))
 
 
-def updateMessages(bot, todolist, msgtext="", oldlist=None, jobqueue=None):
-    inlinetext = msgtext
-    editOwnerMsg = True
-    if msgtext != "Closed":
-        msgtext, inlinetext = str(todolist), repr(todolist)
-        editOwnerMsg = False if dbFuncs.getSettingsTerminalByUser(todolist.id, todolist.manager.id) else True
-    if editOwnerMsg:
-        ownermsg = todolist.getMessage()
-        try:
-            if helpFuncs.isInt(ownermsg):
-                bot.edit_message_text(chat_id=todolist.manager.id, message_id=ownermsg, text=msgtext,
-                                      parse_mode='Markdown', disable_web_page_preview=True, reply_markup=(
-                        Keyboard.listKeyboard(todolist, todolist.manager.id) if msgtext != "Closed" else None))
-            else:
-                bot.edit_message_text(inline_message_id=ownermsg, text=msgtext, parse_mode='Markdown',
-                                      disable_web_page_preview=True, reply_markup=(
-                        Keyboard.listKeyboard(todolist, todolist.manager.id) if msgtext != "Closed" else None))
-        except BadRequest as error:
-            if str(error) == "Message is not modified":
-                logger.info(repr(error))
-            else:
-                logger.error(repr(error))
+def closeMessages(bot, todolist):
+    msgtext = "Closed"
+    ownermsg = todolist.getMessage()
+    try:
+        if helpFuncs.isInt(ownermsg):
+            bot.edit_message_text(chat_id=todolist.manager.id, message_id=ownermsg, text=msgtext)
+        else:
+            bot.edit_message_text(inline_message_id=ownermsg, text=msgtext)
+    except BadRequest as error:
+        if str(error) == "Message is not modified":
+            logger.info(repr(error))
+        else:
+            logger.error(repr(error))
     if todolist.members:
         for coworker in todolist.getCoMessages():
             try:
                 if helpFuncs.isInt(coworker[1]):
-                    bot.edit_message_text(chat_id=coworker[0], message_id=coworker[1], text=msgtext,
-                                          parse_mode='Markdown', disable_web_page_preview=True, reply_markup=(
-                            Keyboard.listKeyboard(todolist, coworker[0]) if msgtext != "Closed" else None))
+                    bot.edit_message_text(chat_id=coworker[0], message_id=coworker[1], text=msgtext)
                 else:
-                    bot.edit_message_text(inline_message_id=coworker[1], text=msgtext, parse_mode='Markdown',
-                                          disable_web_page_preview=True, reply_markup=(
-                            Keyboard.listKeyboard(todolist, coworker[0]) if msgtext != "Closed" else None))
+                    bot.edit_message_text(inline_message_id=coworker[1], text=msgtext)
             except BadRequest as error:
                 logger.error(error)  # ummm... TODO
     inlines = todolist.getInlineMessages()
     if inlines:
         for inline in inlines:
             try:
-                bot.edit_message_text(inline_message_id=inline[1], text=inlinetext, parse_mode='Markdown',
-                                      disable_web_page_preview=True, reply_markup=(
-                        Keyboard.listKeyboard(todolist, -1) if msgtext != "Closed" else None))
+                bot.edit_message_text(inline_message_id=inline[1], text=msgtext)
+            except BadRequest as error:
+                if str(error) == "Message_id_invalid":
+                    dbFuncs.removeInlineMessage(inline[1])
+                else:
+                    logger.error(error)
+
+
+def updateMessages(bot, todolist, msgtext="", oldlist=None, jobqueue=None):
+    inlinetext = msgtext
+    editOwnerMsg = True
+    if msgtext == "Closed":
+        closeMessages(bot, todolist)
+        return
+    new_msg = Message()
+    in_settings = [item for t in dbFuncs.getSettingsTerminal(todolist.id) for item in t]
+    if todolist.manager.id in in_settings:
+        new_msg.createManagerSettingsMessage(todolist)
+    else:
+        new_msg.createUserListMessage(todolist, todolist.manager.id)
+    ownermsg = todolist.getMessage()
+    try:
+        if helpFuncs.isInt(ownermsg):
+            bot.edit_message_text(chat_id=todolist.manager.id, message_id=ownermsg, text=new_msg.text,
+                                  parse_mode='Markdown', disable_web_page_preview=True, reply_markup=new_msg.keyboard)
+        else:
+            bot.edit_message_text(inline_message_id=ownermsg, text=new_msg.text, parse_mode='Markdown',
+                                  disable_web_page_preview=True, reply_markup=new_msg.keyboard)
+    except BadRequest as error:
+        if str(error) == "Message is not modified":
+            logger.info(repr(error))
+        else:
+            logger.error(repr(error))
+    if todolist.members:
+        for coworker in todolist.getCoMessages():
+            if coworker[0] in in_settings:
+                new_msg.createMemberSettingsMessage(todolist)
+            else:
+                new_msg.createUserListMessage(todolist, coworker[0])
+            try:
+                if helpFuncs.isInt(coworker[1]):
+                    bot.edit_message_text(chat_id=coworker[0], message_id=coworker[1], text=new_msg.text,
+                                          parse_mode='Markdown', disable_web_page_preview=True, reply_markup=new_msg.keyboard)
+                else:
+                    bot.edit_message_text(inline_message_id=coworker[1], text=new_msg.text, parse_mode='Markdown',
+                                          disable_web_page_preview=True, reply_markup=new_msg.keyboard)
+            except BadRequest as error:
+                logger.error(error)  # ummm... TODO
+    inlines = todolist.getInlineMessages()
+    if inlines:
+        new_msg.createInlineListMessage(todolist.id)
+        for inline in inlines:
+            try:
+                bot.edit_message_text(inline_message_id=inline[1], text=new_msg.text, parse_mode='Markdown',
+                                      disable_web_page_preview=True, reply_markup=new_msg.keyboard)
             except BadRequest as error:
                 if str(error) == "Message_id_invalid":
                     dbFuncs.removeInlineMessage(inline[1])
@@ -391,7 +430,7 @@ def pushInline(update, context):
             new_msg = Message.managerSettingsMessage(todolist)
         else:
             new_msg = Message.memberSettingsMessage(todolist)
-        query.edit_message_text(text=new_msg.text, reply_markup=new_msg.keyboard)
+        query.edit_message_text(text=new_msg.text, reply_markup=new_msg.keyboard, parse_mode='Markdown')
         dbFuncs.toggleSettingsTerminal(action[0], userid, True)
         query.answer()
         return SETTINGS
@@ -430,9 +469,13 @@ def pushSettings(update, context):
         else:
             user_data['closing'] = action[0]
             query.answer(text=_("confirmremove"), show_alert=True)
+    elif action[1] == SettingOptions[OptionsOrder[5]]:
+        state = False if dbFuncs.getNotifyByUser(userid, action[0]) else True
+        dbFuncs.toggleNotify(action[0], userid, state)
+        query.answer()
     elif action[1] == SettingOptions[OptionsOrder[-1]]:
         new_msg = Message.userListMessage(todolist, userid)
-        query.edit_message_text(text=new_msg.text, reply_markup=new_msg.keyboard)
+        query.edit_message_text(text=new_msg.text, reply_markup=new_msg.keyboard, parse_mode='Markdown')
         dbFuncs.toggleSettingsTerminal(action[0], userid)
         query.answer()
         return ConversationHandler.END
@@ -527,11 +570,13 @@ def notifyList(context):
         newlist = Todolist(oldlist.id)
         members = [newlist.manager]
         members.extend(newlist.members)
+        to_notify = dbFuncs.getNotify(newlist.id)
         differences = oldlist.difference(newlist)
         if len(differences) > 1:
             fulltext = '\n'.join(differences)
-            for member in members:
-                bot.send_message(chat_id=member.id, text=fulltext)
+            if to_notify:
+                for member in to_notify:
+                    bot.send_message(chat_id=member[0], text=fulltext)
         job.schedule_removal()
 
 

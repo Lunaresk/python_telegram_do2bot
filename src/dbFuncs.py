@@ -36,9 +36,9 @@ def initDB():
             "CREATE TABLE IF NOT EXISTS Lists(Code TEXT PRIMARY KEY NOT NULL, Title TEXT NOT NULL, Owner BIGINT NOT NULL REFERENCES Users(Tid) ON UPDATE CASCADE ON DELETE CASCADE, Name TEXT NOT NULL, Message TEXT NOT NULL DEFAULT '0', Open BOOLEAN NOT NULL DEFAULT False);")
         cur.execute("CREATE TABLE IF NOT EXISTS AdminTerminals(List TEXT PRIMARY KEY NOT NULL REFERENCES Lists(Code));")
         cur.execute(
-            "CREATE TABLE IF NOT EXISTS InSettings(List TEXT NOT NULL REFERENCES Lists(Code), User BIGINT NOT NULL REFERENCES Users(TId));")
+            "CREATE TABLE IF NOT EXISTS InSettings(List TEXT NOT NULL REFERENCES Lists(Code), Member BIGINT NOT NULL REFERENCES Users(TId));")
         cur.execute(
-            "CREATE TABLE IF NOT EXISTS Notify(List TEXT NOT NULL REFERENCES Lists(Code), User BIGINT NOT NULL REFERENCES Users(TId));")
+            "CREATE TABLE IF NOT EXISTS Notify(List TEXT NOT NULL REFERENCES Lists(Code), Member BIGINT NOT NULL REFERENCES Users(TId));")
         cur.execute(
             "CREATE TABLE IF NOT EXISTS Items(ID BIGSERIAL PRIMARY KEY NOT NULL, List TEXT NOT NULL REFERENCES Lists(Code) ON UPDATE CASCADE ON DELETE CASCADE, Item TEXT NOT NULL, Done BOOLEAN NOT NULL DEFAULT FALSE, FromUser BIGINT NOT NULL DEFAULT -1, MessageID BIGINT NOT NULL DEFAULT -1, Line SMALLINT NOT NULL DEFAULT 0);")
         cur.execute(
@@ -116,7 +116,7 @@ def insertList(code, title, owner, name):
 
 def insertNotify(code, user):
     with getCur() as cur:
-        cur.execute("INSERT INTO Notify(List, User) VALUES(%s, %s);", (code, user))
+        cur.execute("INSERT INTO Notify(List, Member) VALUES(%s, %s);", (code, user))
         cur.connection.commit()
 
 
@@ -199,7 +199,7 @@ def getInlineMessages(code):
 
 def getInSettings(code):
     with getCur() as cur:
-        cur.execute("SELECT User FROM InSettings WHERE List = %s;", (code,))
+        cur.execute("SELECT Member FROM InSettings WHERE List = %s;", (code,))
         return cur.fetchall()
 
 
@@ -254,16 +254,16 @@ def getLikelyLists(pattern, user):
 
 def getNotify(code):
     with getCur() as cur:
-        cur.execute("SELECT User FROM Notify WHERE List = %s;", (code,))
+        cur.execute("SELECT Member FROM Notify WHERE List = %s;", (code,))
         return cur.fetchall()
 
 
 def getNotifyByUser(user, code=""):
     with getCur() as cur:
         if code:
-            cur.execute("SELECT * FROM Notify WHERE List = %s AND User = %s;", (code, user))
+            cur.execute("SELECT * FROM Notify WHERE List = %s AND Member = %s;", (code, user))
         else:
-            cur.execute("SELECT List FROM Notify WHERE User = %s;", (user,))
+            cur.execute("SELECT List FROM Notify WHERE Member = %s;", (user,))
         return cur.fetchall()
 
 
@@ -313,7 +313,7 @@ def getSettingsTerminal(code):
 
 def getSettingsTerminalByUser(code, userid):
     with getCur() as cur:
-        cur.execute("SELECT * FROM InSettings WHERE List = %s AND User = %s;", (code, userid))
+        cur.execute("SELECT * FROM InSettings WHERE List = %s AND Member = %s;", (code, userid))
         return cur.fetchall()
 
 
@@ -557,18 +557,18 @@ def editItems(items, fromuser, msgID, line=0):
 def toggleNotify(code, user, state=False):
     with getCur() as cur:
         if state:
-            cur.execute("INSERT INTO Notify(List, User) VALUES(%s, %s);", (code, user))
+            cur.execute("INSERT INTO Notify(List, Member) VALUES(%s, %s);", (code, user))
         else:
-            cur.execute("DELETE FROM Notify WHERE List = %s AND User = %s;", (code, user))
+            cur.execute("DELETE FROM Notify WHERE List = %s AND Member = %s;", (code, user))
         cur.connection.commit()
 
 
 def toggleSettingsTerminal(code, user, state=False):
     with getCur() as cur:
         if state:
-            cur.execute("INSERT INTO InSettings(List, User) VALUES(%s, %s);", (code, user))
+            cur.execute("INSERT INTO InSettings(List, Member) VALUES(%s, %s);", (code, user))
         else:
-            cur.execute("DELETE FROM InSettings WHERE List = %s AND User = %s;", (code, user))
+            cur.execute("DELETE FROM InSettings WHERE List = %s AND Member = %s;", (code, user))
         cur.connection.commit()
 
 

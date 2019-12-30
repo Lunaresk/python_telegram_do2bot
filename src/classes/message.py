@@ -7,6 +7,10 @@ class Message:
         self.text = text
         self.keyboard = keyboard
 
+    def createCloseMessage(self):
+        self.text = "Closed"
+        self.keyboard = None
+
     def createInlineListMessage(self, todolist):
         self.text = repr(todolist)
         self.keyboard = Keyboard.listKeyboard(todolist, -1)
@@ -22,6 +26,10 @@ class Message:
     def createUserListMessage(self, todolist, user):
         self.text = str(todolist)
         self.keyboard = Keyboard.listKeyboard(todolist, user)
+
+    @staticmethod
+    def closeMessage(self):
+        return Message("Closed")
 
     @staticmethod
     def inlineListMessage(todolist):
@@ -46,10 +54,10 @@ class Message:
         if todolist.members:
             text += "\nMembers: {0}".format(str(todolist.members[0]))
         for member in todolist.members[1:]:
-            text += str(member)
+            text +=", {0}".format(str(member))
         joinStatus = getJoinStatus(todolist.id)
         text += "\nNotifications: {0}".format(
-            str(True) if getNotifyByUser(todolist.owner.id, todolist.id) else str(False))
+            str(True) if getNotifyByUser(todolist.manager.id, todolist.id) else str(False))
         text += "\n\nCan people join the list: {0}".format("Open" if joinStatus == True else "Closed")
         text += "\nWho can check/uncheck items: "
         if joinStatus == True:  # have to rewrite soon from this point on
