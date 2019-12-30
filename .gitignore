@@ -120,3 +120,8 @@ cryptfuncs.py
 
 # main.py not changing, so ignore it
 main.py
+
+# intellij things
+.idea
+venv
+python_telegram_do2bot.iml
