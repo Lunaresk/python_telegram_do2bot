@@ -1,13 +1,16 @@
 from ..dbFuncs import (toggleListOpen, sortList)
 
+
 class Settings:
 
+    @staticmethod
+    def listToggle(code, new_state):
+        toggleListOpen(code, new_state)
 
-  def listToggle(code, newState):
-    toggleListOpen(code, newState)
+    @staticmethod
+    def listSort(code, sorting):
+        sortList(code, sorting)
 
-  def listSort(code, sorting):
-    sortList(code, sorting)
-
-  def backupSingle():
-    pass #TODO
+    @staticmethod
+    def backupSingle():
+        pass  # TODO
