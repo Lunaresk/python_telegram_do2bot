@@ -114,12 +114,6 @@ def insertList(code, title, owner, name):
         cur.connection.commit()
 
 
-def insertNotify(code, user):
-    with getCur() as cur:
-        cur.execute("INSERT INTO Notify(List, Member) VALUES(%s, %s);", (code, user))
-        cur.connection.commit()
-
-
 def insertPrivateInline(inlineId, messageId):
     with getCur() as cur:
         cur.execute("INSERT INTO PrivateInlines(InlineId, MessageId) VALUES(%s, %s);", (inlineId, messageId))

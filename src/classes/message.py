@@ -16,7 +16,7 @@ class Message:
         self.keyboard = Keyboard.listKeyboard(todolist, -1)
 
     def createManagerSettingsMessage(self, todolist):
-        self.text = Message.settingsText(todolist)
+        self.text = Message.settingsText(todolist, todolist.manager.id)
         self.keyboard = Keyboard.managerKeyboard(todolist.id)
 
     def createMemberSettingsMessage(self, todolist, userid):

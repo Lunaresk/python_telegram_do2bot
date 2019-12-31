@@ -302,8 +302,6 @@ def closeMessages(bot, todolist):
 
 
 def updateMessages(bot, todolist, msgtext="", oldlist=None, jobqueue=None):
-    inlinetext = msgtext
-    editOwnerMsg = True
     if msgtext == "Closed":
         closeMessages(bot, todolist)
         return
