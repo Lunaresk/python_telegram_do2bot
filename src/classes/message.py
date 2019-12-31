@@ -19,8 +19,8 @@ class Message:
         self.text = Message.settingsText(todolist)
         self.keyboard = Keyboard.managerKeyboard(todolist.id)
 
-    def createMemberSettingsMessage(self, todolist):
-        self.text = Message.settingsText(todolist)
+    def createMemberSettingsMessage(self, todolist, userid):
+        self.text = Message.settingsText(todolist, userid)
         self.keyboard = Keyboard.memberKeyboard(todolist.id)
 
     def createUserListMessage(self, todolist, user):
@@ -37,18 +37,18 @@ class Message:
 
     @staticmethod
     def managerSettingsMessage(todolist):
-        return Message(Message.settingsText(todolist), Keyboard.managerKeyboard(todolist.id))
+        return Message(Message.settingsText(todolist, todolist.manager.id), Keyboard.managerKeyboard(todolist.id))
 
     @staticmethod
-    def memberSettingsMessage(todolist):
-        return Message(Message.settingsText(todolist), Keyboard.memberKeyboard(todolist.id))
+    def memberSettingsMessage(todolist, userid):
+        return Message(Message.settingsText(todolist, userid), Keyboard.memberKeyboard(todolist.id))
 
     @staticmethod
     def userListMessage(todolist, user):
         return Message(str(todolist), Keyboard.listKeyboard(todolist, user))
 
     @staticmethod
-    def settingsText(todolist):
+    def settingsText(todolist, userid: int = -1):
         text = "ID: /{0}".format(str(todolist.id))
         text += "\nManager: {0}".format(str(todolist.manager))
         if todolist.members:
@@ -57,7 +57,7 @@ class Message:
             text +=", {0}".format(str(member))
         joinStatus = getJoinStatus(todolist.id)
         text += "\nNotifications: {0}".format(
-            str(True) if getNotifyByUser(todolist.manager.id, todolist.id) else str(False))
+            str(True) if getNotifyByUser(userid, todolist.id) else str(False))
         text += "\n\nCan people join the list: {0}".format("Open" if joinStatus == True else "Closed")
         text += "\nWho can check/uncheck items: "
         if joinStatus == True:  # have to rewrite soon from this point on

@@ -329,7 +329,7 @@ def updateMessages(bot, todolist, msgtext="", oldlist=None, jobqueue=None):
     if todolist.members:
         for coworker in todolist.getCoMessages():
             if coworker[0] in in_settings:
-                new_msg.createMemberSettingsMessage(todolist)
+                new_msg.createMemberSettingsMessage(todolist, coworker[0])
             else:
                 new_msg.createUserListMessage(todolist, coworker[0])
             try:
@@ -429,7 +429,7 @@ def pushInline(update, context):
         if todolist.manager == userid:
             new_msg = Message.managerSettingsMessage(todolist)
         else:
-            new_msg = Message.memberSettingsMessage(todolist)
+            new_msg = Message.memberSettingsMessage(todolist, userid)
         query.edit_message_text(text=new_msg.text, reply_markup=new_msg.keyboard, parse_mode='Markdown')
         dbFuncs.toggleSettingsTerminal(action[0], userid, True)
         query.answer()

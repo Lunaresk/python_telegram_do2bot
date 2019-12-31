@@ -83,7 +83,7 @@ class Keyboard:
     def memberKeyboard(code):  # TODO Make the Member Keyboard
         member_options, pattern, member_border = dict(Keyboard.ManagerOptions), Keyboard.patterns[1],\
                                                   Keyboard.MemberOptions
-        for key in member_options:
+        for key in dict(member_options):
             if key not in Keyboard.ManagerOptionsNames[member_border:]:
                 member_options.pop(key)
         for key, value in member_options.items():
