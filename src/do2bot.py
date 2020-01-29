@@ -634,6 +634,7 @@ def main(updater):
     dispatcher.add_handler(listhandlerconv)
     dispatcher.add_handler(settingshandlerconv)
     dispatcher.add_handler(pushinlinecall)
+    dispatcher.add_handler(pushadmincall)
     dispatcher.add_handler(sendcomm)
     dispatcher.add_handler(helpcomm)
     dispatcher.add_handler(backupcomm)
