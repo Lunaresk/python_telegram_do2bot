@@ -253,9 +253,9 @@ class ListIterator:
         if self._index == 0:
             temp = self._list.name
         elif self._index == 1:
-            temp = self._list.owner.id
+            temp = self._list.manager.id
         elif self._index == 2:
-            temp = self._list.owner.name
+            temp = self._list.manager.name
         elif self._index == 3:
             temp = []
             for item in self._list.items:

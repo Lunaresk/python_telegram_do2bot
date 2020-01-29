@@ -80,7 +80,7 @@ class Keyboard:
         return InlineKeyboardMarkup(keyboard)
 
     @staticmethod
-    def memberKeyboard(code):  # TODO Make the Member Keyboard
+    def memberKeyboard(code):
         member_options, pattern, member_border = dict(Keyboard.ManagerOptions), Keyboard.patterns[1],\
                                                   Keyboard.MemberOptions
         for key in dict(member_options):

@@ -551,13 +551,13 @@ def sendAll(update, context):
 
 def fixButtons(update, context):
     query = update.callback_query
-    if "_" in query.data:
-        query.edit_message_reply_markup(
-            Keyboard.listKeyboard(Todolist(query.data.split("_")[0]), query.message.chat.id))
-    elif query.data in list(Keyboard.ManagerOptions.values()):
+    if query.data in list(Keyboard.ManagerOptions.values()):
         query.edit_message_reply_markup(Keyboard.managerKeyboard(query.data.split("_")[0]))
     elif query.data in list(Keyboard.Settings.values()):
         query.edit_message_reply_markup(Keyboard.settingsKeyboard())
+    elif "_" in query.data:
+        query.edit_message_reply_markup(
+            Keyboard.listKeyboard(Todolist(query.data.split("_")[0]), query.message.chat.id))
     query.answer("Something went wrong. Please try again.")
 
 
