@@ -228,7 +228,7 @@ def getList(code):
         return cur.fetchone()
 
 
-def getJoinStatus(code):
+def getJoinStatus(code: str):
     with getCur() as cur:
         cur.execute("SELECT Open FROM Lists WHERE Code = %s;", (code,))
         return cur.fetchone()

@@ -58,14 +58,14 @@ class Message:
         joinStatus = getJoinStatus(todolist.id)
         text += "\nNotifications: {0}".format(
             str(True) if getNotifyByUser(userid, todolist.id) else str(False))
-        text += "\n\nCan people join the list: {0}".format("Open" if joinStatus == True else "Closed")
+        text += "\n\nCan people join the list: {0}".format("Open" if joinStatus else "Closed")
         text += "\nWho can check/uncheck items: "
-        if joinStatus == True:  # have to rewrite soon from this point on
+        if joinStatus:  # have to rewrite soon from this point on
             text += "Everyone"
         else:
             text += "Members and Manager"
         text += "\nWho can add/remove items: "
-        if joinStatus == True:
+        if joinStatus:
             text += "Everyone"
         else:
             text += "Members and Manager"
