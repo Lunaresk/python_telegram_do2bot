@@ -341,7 +341,7 @@ def updateMessages(bot, todolist, msgtext="", oldlist=None, jobqueue=None):
                 logger.error(error)  # ummm... TODO
     inlines = todolist.getInlineMessages()
     if inlines:
-        new_msg.createInlineListMessage(todolist.id)
+        new_msg.createInlineListMessage(todolist)
         for inline in inlines:
             try:
                 bot.edit_message_text(inline_message_id=inline[1], text=new_msg.text, parse_mode='Markdown',
@@ -551,14 +551,7 @@ def sendAll(update, context):
 
 def fixButtons(update, context):
     query = update.callback_query
-    if query.data in list(Keyboard.ManagerOptions.values()):
-        query.edit_message_reply_markup(Keyboard.managerKeyboard(query.data.split("_")[0]))
-    elif query.data in list(Keyboard.Settings.values()):
-        query.edit_message_reply_markup(Keyboard.settingsKeyboard())
-    elif "_" in query.data:
-        query.edit_message_reply_markup(
-            Keyboard.listKeyboard(Todolist(query.data.split("_")[0]), query.message.chat.id))
-    query.answer("Something went wrong. Please try again.")
+    query.answer("Something went wrong. Please reinitialize the list.")
 
 
 def notifyList(context):
