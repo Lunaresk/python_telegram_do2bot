@@ -55,7 +55,10 @@ class Message:
             text += "\nMembers: {0}".format(str(todolist.members[0]))
         for member in todolist.members[1:]:
             text +=", {0}".format(str(member))
-        joinStatus = getJoinStatus(todolist.id)
+        try:
+            joinStatus = getJoinStatus(todolist.id)[0]
+        except:
+            joinStatus = False
         text += "\nNotifications: {0}".format(
             str(True) if getNotifyByUser(userid, todolist.id) else str(False))
         text += "\n\nCan people join the list: {0}".format("Open" if joinStatus else "Closed")
