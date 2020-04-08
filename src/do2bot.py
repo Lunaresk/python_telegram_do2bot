@@ -312,6 +312,8 @@ def closeMessages(bot, todolist):
                     dbFuncs.removeInlineMessage(inline[1])
                 else:
                     logger.error(error)
+            except Exception as e:
+                logger.error(repr(e))
 
 
 def updateMessages(bot, todolist, msgtext="", oldlist=None, jobqueue=None):
