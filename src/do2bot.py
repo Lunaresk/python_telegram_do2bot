@@ -272,7 +272,10 @@ def closeMessages(bot, todolist):
     ownermsg = todolist.getMessage()
     try:
         if helpFuncs.isInt(ownermsg):
-            bot.edit_message_text(chat_id=todolist.manager.id, message_id=ownermsg, text=msgtext)
+            try:
+                bot.delete_message(chat_id=todolist.manager.id, message_id=ownermsg)
+            except Exception as e:
+                bot.edit_message_text(chat_id=todolist.manager.id, message_id=ownermsg, text=msgtext)
         else:
             bot.edit_message_text(inline_message_id=ownermsg, text=msgtext)
     except BadRequest as error:
@@ -284,7 +287,10 @@ def closeMessages(bot, todolist):
         for coworker in todolist.getCoMessages():
             try:
                 if helpFuncs.isInt(coworker[1]):
-                    bot.edit_message_text(chat_id=coworker[0], message_id=coworker[1], text=msgtext)
+                    try:
+                        bot.delete_message(chat_id=coworker[0], message_id=coworker[1])
+                    except Exception as e:
+                        bot.edit_message_text(chat_id=coworker[0], message_id=coworker[1], text=msgtext)
                 else:
                     bot.edit_message_text(inline_message_id=coworker[1], text=msgtext)
             except BadRequest as error:
@@ -333,7 +339,8 @@ def updateMessages(bot, todolist, msgtext="", oldlist=None, jobqueue=None):
             try:
                 if helpFuncs.isInt(coworker[1]):
                     bot.edit_message_text(chat_id=coworker[0], message_id=coworker[1], text=new_msg.text,
-                                          parse_mode='Markdown', disable_web_page_preview=True, reply_markup=new_msg.keyboard)
+                                          parse_mode='Markdown', disable_web_page_preview=True,
+                                          reply_markup=new_msg.keyboard)
                 else:
                     bot.edit_message_text(inline_message_id=coworker[1], text=new_msg.text, parse_mode='Markdown',
                                           disable_web_page_preview=True, reply_markup=new_msg.keyboard)
@@ -460,7 +467,7 @@ def pushSettings(update, context):
         return SETTINGS
     elif action[1] == SettingOptions[OptionsOrder[4]]:
         if 'closing' in user_data and user_data['closing'] == action[0]:
-            updateMessages(bot, todolist, "Closed")
+            closeMessages(bot, todolist)
             todolist.deleteList()
             query.answer(text=_("listremoved"))
             return ConversationHandler.END

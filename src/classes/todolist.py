@@ -195,7 +195,7 @@ class Todolist:
         return dbgetInlineMessages(self.id)
 
     @staticmethod
-    def new(name: str, owner: int, ownerName: str):
+    def new(name: str, owner: int, owner_name: str):
         """Creates a new list and stores the details in the database.
 
     Arguments:
@@ -219,9 +219,9 @@ class Todolist:
         except NameError as e:
             pass
         else:
-            dbfunc = Thread(target=insertList, args=(code, name, owner, ownerName))
+            dbfunc = Thread(target=insertList, args=(code, name, owner, owner_name))
             dbfunc.start()
-            return Todolist(code, name, owner, ownerName)
+            return Todolist(code, name, owner, owner_name)
 
     def toggleItem(self, id):
         try:
