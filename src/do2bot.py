@@ -273,6 +273,7 @@ def editMessage(update, context):
 
 def closeMessages(bot, todolist):
     msgtext = "Closed"
+    logger.info("Closing Owner...")
     ownermsg = todolist.getMessage()
     try:
         if helpFuncs.isInt(ownermsg):
@@ -287,6 +288,7 @@ def closeMessages(bot, todolist):
             logger.info(repr(error))
         else:
             logger.error(repr(error))
+    logger.info("Closing Members...")
     if todolist.members:
         for coworker in todolist.getCoMessages():
             try:
@@ -299,6 +301,7 @@ def closeMessages(bot, todolist):
                     bot.edit_message_text(inline_message_id=coworker[1], text=msgtext)
             except BadRequest as error:
                 logger.error(error)  # ummm... TODO
+    logger.info("Closing Inlines...")
     inlines = todolist.getInlineMessages()
     if inlines:
         for inline in inlines:
