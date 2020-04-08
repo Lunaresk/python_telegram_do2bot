@@ -182,14 +182,18 @@ def deleteMessages(bot, chatId, messageId):
             try:
                 bot.delete_message(chat_id=chatId, message_id=privateInline[1])
             except Exception as e:
-                logger.info(repr(e))
+                try:
+                    bot.edit_message_text(inline_message_id=messageId, text='↓')
+                except Exception as e2:
+                    logger.info(repr(e))
+                    logger.info(repr(e2))
             finally:
                 dbFuncs.removePrivateInline(messageId)
         else:
             try:
                 bot.edit_message_text(inline_message_id=messageId, text='↓')
-            except Exception as e2:
-                logger.info(repr(e2))
+            except Exception as e:
+                logger.info(repr(e))
 
 
 @run_async
@@ -358,6 +362,8 @@ def updateMessages(bot, todolist, msgtext="", oldlist=None, jobqueue=None):
                     dbFuncs.removeInlineMessage(inline[1])
                 else:
                     logger.error(error)
+            except Exception as e:
+                logger.error(repr(e))
     if jobqueue:
         with lock:
             helpFuncs.setJob(oldlist, jobqueue, notifyList)
@@ -467,7 +473,9 @@ def pushSettings(update, context):
         return SETTINGS
     elif action[1] == SettingOptions[OptionsOrder[4]]:
         if 'closing' in user_data and user_data['closing'] == action[0]:
+            logger.info("Closing Messages...")
             closeMessages(bot, todolist)
+            logger.info("Closed Messages, removing List...")
             todolist.deleteList()
             query.answer(text=_("listremoved"))
             return ConversationHandler.END
